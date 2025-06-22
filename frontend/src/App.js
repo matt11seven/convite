@@ -811,20 +811,30 @@ const AppContent = () => {
       return;
     }
     
+    if (!isAuthenticated) {
+      alert('Você precisa estar logado para salvar templates');
+      setShowAuthModal(true);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const templateData = {
         name: templateName,
         elements: templateElements,
         background: templateBackground,
-        dimensions: { width: canvasWidth, height: canvasHeight }
+        dimensions: { width: canvasWidth, height: canvasHeight },
+        is_public: false
+      };
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
       };
       
       const response = await fetch(`${backendUrl}/api/templates`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(templateData),
       });
       
@@ -836,7 +846,8 @@ const AppContent = () => {
         setIsFirstTimeCreated(true);
         setIsEndpointExpanded(true); // Expand when first created
       } else {
-        alert('Erro ao salvar template');
+        const error = await response.json();
+        alert(`Erro ao salvar template: ${error.detail || 'Erro desconhecido'}`);
       }
     } catch (error) {
       alert('Erro ao salvar template: ' + error.message);
