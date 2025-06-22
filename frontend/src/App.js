@@ -787,11 +787,38 @@ const AppContent = () => {
     const file = e.target.files[0];
     if (!file || selectedElement === null) return;
     
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      updateSelectedElement('src', event.target.result);
-    };
-    reader.readAsDataURL(file);
+    if (!isAuthenticated) {
+      alert('Você precisa estar logado para fazer upload de imagens');
+      setShowAuthModal(true);
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/upload`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        updateSelectedElement('src', result.file_url);
+      } else {
+        const error = await response.json();
+        alert(`Erro no upload: ${error.detail || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      // Fallback to local file reading for non-authenticated users
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        updateSelectedElement('src', event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleBackgroundUpload = async (e) => {
