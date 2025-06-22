@@ -13,6 +13,10 @@ from datetime import datetime, timedelta
 import io
 from PIL import Image
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
 # Import our security modules
 import sys
 import os
