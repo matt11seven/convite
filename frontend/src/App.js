@@ -890,69 +890,105 @@ const App = () => {
                   </div>
                   
                   <div className="elements-list">
-                      {templateElements.length === 0 ? (
-                        <div className="no-elements-compact">
-                          Use a aba "Elementos" para adicionar
-                        </div>
-                      ) : (
-                        templateElements.map((element, index) => (
-                          <div 
-                            key={index}
-                            className={`element-item-compact ${selectedElement === index ? 'selected' : ''}`}
-                            onClick={() => setSelectedElement(index)}
-                          >
-                            <span className="element-icon-small">
+                    {templateElements.length === 0 ? (
+                      <div className="empty-elements">
+                        <span className="empty-icon">📝</span>
+                        <p>Nenhum elemento adicionado</p>
+                        <small>Use a aba "Elementos" para adicionar</small>
+                      </div>
+                    ) : (
+                      templateElements.map((element, index) => (
+                        <div 
+                          key={index}
+                          className={`element-item ${selectedElement === index ? 'selected' : ''}`}
+                          onClick={() => setSelectedElement(index)}
+                        >
+                          <div className="element-info">
+                            <div className="element-icon">
                               {element.type === 'text' ? '📝' : '🖼️'}
-                            </span>
-                            <div className="element-info-compact">
-                              <span className="element-name-compact">
-                                {element.type === 'text' ? 'Texto' : 'Imagem'} {index + 1}
-                              </span>
-                              <span className="element-preview-compact">
-                                {element.type === 'text' 
-                                  ? (element.content || 'Vazio').substring(0, 20) + (element.content && element.content.length > 20 ? '...' : '')
-                                  : element.src ? 'Com imagem' : 'Placeholder'
-                                }
-                              </span>
                             </div>
-                            <div className="element-actions-compact">
-                              <button 
-                                className="btn-micro"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const duplicated = { ...element };
-                                  duplicated.x += 10;
-                                  duplicated.y += 10;
-                                  const updated = [...templateElements];
-                                  updated.splice(index + 1, 0, duplicated);
-                                  setTemplateElements(updated);
-                                  setSelectedElement(index + 1);
-                                }}
-                                title="Duplicar"
-                              >
-                                📋
-                              </button>
-                              <button 
-                                className="btn-micro btn-delete"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (window.confirm('Remover elemento?')) {
-                                    const updated = templateElements.filter((_, i) => i !== index);
-                                    setTemplateElements(updated);
-                                    setSelectedElement(selectedElement === index ? null : 
-                                      selectedElement > index ? selectedElement - 1 : selectedElement);
-                                  }
-                                }}
-                                title="Remover"
-                              >
-                                ❌
-                              </button>
+                            <div className="element-details">
+                              <div className="element-name">
+                                {element.type === 'text' ? 'Texto' : 'Imagem'} {index + 1}
+                              </div>
+                              <div className="element-preview">
+                                {element.type === 'text' 
+                                  ? (element.content?.slice(0, 20) + (element.content?.length > 20 ? '...' : ''))
+                                  : (element.shape === 'circle' ? 'Circular' : 'Retangular')
+                                }
+                              </div>
                             </div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  )}
+                          
+                          <div className="element-actions">
+                            <button 
+                              className="btn-action btn-duplicate"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newElement = { ...element };
+                                newElement.x += 20;
+                                newElement.y += 20;
+                                const updated = [...templateElements];
+                                updated.splice(index + 1, 0, newElement);
+                                setTemplateElements(updated);
+                                setSelectedElement(index + 1);
+                              }}
+                              title="Duplicar elemento"
+                            >
+                              📋
+                            </button>
+                            <button 
+                              className="btn-action btn-move-up"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (index > 0) {
+                                  const updated = [...templateElements];
+                                  [updated[index], updated[index - 1]] = [updated[index - 1], updated[index]];
+                                  setTemplateElements(updated);
+                                  setSelectedElement(index - 1);
+                                }
+                              }}
+                              disabled={index === 0}
+                              title="Mover para cima"
+                            >
+                              ⬆️
+                            </button>
+                            <button 
+                              className="btn-action btn-move-down"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (index < templateElements.length - 1) {
+                                  const updated = [...templateElements];
+                                  [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+                                  setTemplateElements(updated);
+                                  setSelectedElement(index + 1);
+                                }
+                              }}
+                              disabled={index === templateElements.length - 1}
+                              title="Mover para baixo"
+                            >
+                              ⬇️
+                            </button>
+                            <button 
+                              className="btn-action btn-delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Remover este elemento?')) {
+                                  const updated = templateElements.filter((_, i) => i !== index);
+                                  setTemplateElements(updated);
+                                  setSelectedElement(selectedElement === index ? null : 
+                                    selectedElement > index ? selectedElement - 1 : selectedElement);
+                                }
+                              }}
+                              title="Remover elemento"
+                            >
+                              ❌
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 {/* Element Properties */}
