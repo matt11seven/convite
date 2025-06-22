@@ -571,6 +571,8 @@ const App = () => {
         setTemplateBackground(template.background);
         setTemplateName(template.name);
         setSelectedElement(null);
+        setIsFirstTimeCreated(false);
+        setIsEndpointExpanded(false); // Minimize when loading existing template
       }
     } catch (error) {
       console.error('Erro ao carregar template:', error);
