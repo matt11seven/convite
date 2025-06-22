@@ -51,13 +51,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic models
+# Security setup
+security = HTTPBearer()
+
+# Enhanced Pydantic models
 class TemplateElement(BaseModel):
     type: str  # 'text' or 'image'
     x: int
     y: int
     content: Optional[str] = None  # For text elements
-    src: Optional[str] = None  # For image elements (base64)
+    src: Optional[str] = None  # For image elements (B2 URL)
     width: Optional[int] = None
     height: Optional[int] = None
     fontSize: Optional[int] = None
@@ -73,12 +76,23 @@ class TemplateDimensions(BaseModel):
 class Template(BaseModel):
     name: str
     elements: List[TemplateElement]
-    background: str  # Color hex or base64 image
+    background: str  # Color hex or B2 URL
     dimensions: TemplateDimensions
+    is_public: Optional[bool] = False
 
 class GenerateRequest(BaseModel):
     template_id: str
     customizations: Dict[str, Any]  # Key-value pairs for customization
+
+class AuditLog(BaseModel):
+    user_id: str
+    action: str
+    resource_type: str
+    resource_id: Optional[str] = None
+    details: Dict[str, Any]
+    ip_address: str
+    user_agent: str
+    timestamp: datetime
 
 # Root endpoint
 @app.get("/")
