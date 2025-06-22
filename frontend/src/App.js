@@ -866,7 +866,7 @@ const App = () => {
 
             {activeTab === 'properties' && (
               <div className="properties-panel">
-                <h3>Propriedades do Elemento</h3>
+                <h3>⚙️ Propriedades</h3>
                 
                 {/* Elements List - Compact Dropdown */}
                 <div className="elements-list-container">
