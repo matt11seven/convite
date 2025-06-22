@@ -318,48 +318,95 @@ async def upload_image(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-# Enhanced template endpoints with user ownership
+# Enhanced template endpoints with optional authentication
 @app.get("/api/templates")
-async def get_templates(current_user: Dict[str, Any] = Depends(get_current_active_user)):
-    """Get templates accessible to current user."""
+async def get_templates(authorization: str = None):
+    """Get templates with optional authentication for access control."""
     try:
-        filter_query = get_user_templates_filter(current_user)
-        templates = list(templates_collection.find(filter_query, {"_id": 0}))
+        # If no auth provided, return only public templates
+        if not authorization or not authorization.startswith("Bearer "):
+            templates = list(templates_collection.find({"is_public": True}, {"_id": 0}))
+            return templates
+        
+        # Try to authenticate and get user-specific templates
+        try:
+            from auth import verify_token, get_user_by_id
+            token = authorization.split(" ")[1]
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                user = get_user_by_id(user_id)
+                if user:
+                    filter_query = get_user_templates_filter(user)
+                    templates = list(templates_collection.find(filter_query, {"_id": 0}))
+                    return templates
+        except:
+            pass  # Fall back to public templates if auth fails
+        
+        # Fallback to public templates
+        templates = list(templates_collection.find({"is_public": True}, {"_id": 0}))
         return templates
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching templates: {str(e)}")
 
 @app.get("/api/templates/{template_id}")
-async def get_template(
-    template_id: str, 
-    current_user: Dict[str, Any] = Depends(get_current_active_user)
-):
-    """Get a specific template with access control."""
+async def get_template(template_id: str, authorization: str = None):
+    """Get a specific template with optional access control."""
     try:
         template = templates_collection.find_one({"id": template_id}, {"_id": 0})
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
         
-        # Check access permissions
-        if (template.get("user_id") != current_user["id"] and 
-            not template.get("is_public", False) and 
-            current_user.get("role") != "admin"):
-            raise HTTPException(status_code=403, detail="Access denied")
+        # If template is public, return it
+        if template.get("is_public", False):
+            return template
         
-        return template
+        # If no auth and template is private, deny access
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=403, detail="Access denied - authentication required")
+        
+        # Try to authenticate and check permissions
+        try:
+            from auth import verify_token, get_user_by_id
+            token = authorization.split(" ")[1]
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                user = get_user_by_id(user_id)
+                if user:
+                    # Check access permissions
+                    if (template.get("user_id") == user["id"] or user.get("role") == "admin"):
+                        return template
+        except:
+            pass
+        
+        raise HTTPException(status_code=403, detail="Access denied")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching template: {str(e)}")
 
 @app.post("/api/templates")
-async def create_template(
-    template: Template, 
-    current_user: Dict[str, Any] = Depends(get_current_active_user),
-    request: Request = None
-):
-    """Create a new template with user ownership."""
+async def create_template(template: Template, request: Request, authorization: str = None):
+    """Create template with optional authentication (defaults to public if no auth)."""
     try:
+        # Default user info for non-authenticated requests
+        user_info = {"id": "anonymous", "role": "user"}
+        
+        # Try to get authenticated user
+        if authorization and authorization.startswith("Bearer "):
+            try:
+                from auth import verify_token, get_user_by_id
+                token = authorization.split(" ")[1]
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("sub")
+                    user = get_user_by_id(user_id)
+                    if user:
+                        user_info = user
+            except:
+                pass  # Continue with anonymous user
+        
         template_id = str(uuid.uuid4())
         
         # Sanitize template data
@@ -367,27 +414,28 @@ async def create_template(
         
         template_data = {
             "id": template_id,
-            "user_id": current_user["id"],
+            "user_id": user_info["id"],
             "name": template.name,
             "elements": [element.dict() for element in template.elements],
             "background": template.background,
             "dimensions": template.dimensions.dict(),
-            "is_public": template.is_public,
+            "is_public": template.is_public if user_info["id"] != "anonymous" else True,  # Force public for anonymous
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
         
         templates_collection.insert_one(template_data)
         
-        # Log audit event
-        log_audit_event(
-            user_id=current_user["id"],
-            action="template_created",
-            resource_type="template",
-            request=request,
-            resource_id=template_id,
-            details={"name": template.name}
-        )
+        # Log audit event if user is authenticated
+        if user_info["id"] != "anonymous":
+            log_audit_event(
+                user_id=user_info["id"],
+                action="template_created",
+                resource_type="template",
+                request=request,
+                resource_id=template_id,
+                details={"name": template.name}
+            )
         
         return {
             "id": template_id,
