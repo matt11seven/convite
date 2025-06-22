@@ -168,10 +168,11 @@ class ConvitesAPITest(unittest.TestCase):
     def test_07_generate_invite(self):
         """Test generating a personalized invite"""
         print("\n7. Testing Generate Personalized Invite...")
+        
+        # Test data as specified in the review request
         customizations = {
-            "#euvou": "MARIA VAI",
-            "doutores": "EVENTO ESPECIAL",
-            "image": self.image_data_url
+            "text": "Novo Texto Personalizado",
+            "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
         }
         
         try:
@@ -185,9 +186,7 @@ class ConvitesAPITest(unittest.TestCase):
             print(f"Response status: {response.status_code}")
             print(f"Response content: {response.text[:500]}")
             
-            if response.status_code != 200:
-                self.__class__.invite_id = None
-                return
+            self.assertEqual(response.status_code, 200, f"Failed to generate invite: {response.text}")
             
             data = response.json()
             self.assertIn("id", data)
