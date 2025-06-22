@@ -8,7 +8,6 @@ const App = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
-  const [showElementsList, setShowElementsList] = useState(true);
   const [templateInfoExpanded, setTemplateInfoExpanded] = useState(true);
   
   // Template structure
