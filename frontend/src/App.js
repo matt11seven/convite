@@ -1676,6 +1676,13 @@ ${templateElements.map((element, index) =>
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        mode={authMode}
+      />
     </div>
   );
 };
