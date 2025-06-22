@@ -1,14 +1,290 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext, createContext } from 'react';
 import './App.css';
 
-const App = () => {
+// Auth Context
+const AuthContext = createContext();
+
+// Auth Provider Component
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('auth_token'));
+  const [isLoading, setIsLoading] = useState(false);
+
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+  useEffect(() => {
+    if (token) {
+      // Verify token on app start
+      fetch(`${backendUrl}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        } else {
+          throw new Error('Invalid token');
+        }
+      })
+      .then(userData => {
+        setUser(userData);
+      })
+      .catch(() => {
+        logout();
+      });
+    }
+  }, [token, backendUrl]);
+
+  const login = async (email, password) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.access_token);
+        setUser(data.user);
+        localStorage.setItem('auth_token', data.access_token);
+        return { success: true, user: data.user };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail };
+      }
+    } catch (error) {
+      return { success: false, error: 'Erro de conexão' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (email, password, fullName) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName
+        })
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        // Auto login after registration
+        const loginResult = await login(email, password);
+        return loginResult;
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail };
+      }
+    } catch (error) {
+      return { success: false, error: 'Erro de conexão' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('auth_token');
+  };
+
+  const getAuthHeaders = () => {
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
+  const value = {
+    user,
+    token,
+    isLoading,
+    login,
+    register,
+    logout,
+    getAuthHeaders,
+    isAuthenticated: !!user
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Hook to use auth context
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+// Login/Register Modal Component
+const AuthModal = ({ isOpen, onClose, mode = 'login' }) => {
+  const [currentMode, setCurrentMode] = useState(mode);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    fullName: ''
+  });
+  const [error, setError] = useState('');
+  const { login, register, isLoading } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (currentMode === 'login') {
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        onClose();
+        setFormData({ email: '', password: '', fullName: '' });
+      } else {
+        setError(result.error);
+      }
+    } else {
+      if (!formData.fullName.trim()) {
+        setError('Nome completo é obrigatório');
+        return;
+      }
+      const result = await register(formData.email, formData.password, formData.fullName);
+      if (result.success) {
+        onClose();
+        setFormData({ email: '', password: '', fullName: '' });
+      } else {
+        setError(result.error);
+      }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const switchMode = () => {
+    setCurrentMode(currentMode === 'login' ? 'register' : 'login');
+    setError('');
+    setFormData({ email: '', password: '', fullName: '' });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="auth-modal-overlay" onClick={onClose}>
+      <div className="auth-modal" onClick={e => e.stopPropagation()}>
+        <div className="auth-modal-header">
+          <h2>
+            {currentMode === 'login' ? '🔐 Entrar na Conta' : '✨ Criar Conta'}
+          </h2>
+          <button className="auth-modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {currentMode === 'register' && (
+            <div className="auth-field">
+              <label>Nome Completo:</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+                placeholder="Seu nome completo"
+              />
+            </div>
+          )}
+
+          <div className="auth-field">
+            <label>Email:</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              placeholder="seu@email.com"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label>Senha:</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required
+              placeholder="Sua senha"
+              minLength="6"
+            />
+          </div>
+
+          {error && (
+            <div className="auth-error">
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            className="auth-submit-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? '⏳ Processando...' : 
+             currentMode === 'login' ? '🚀 Entrar' : '✨ Criar Conta'}
+          </button>
+        </form>
+
+        <div className="auth-switch">
+          {currentMode === 'login' ? (
+            <p>
+              Não tem conta? 
+              <button type="button" onClick={switchMode} className="auth-link">
+                Criar conta
+              </button>
+            </p>
+          ) : (
+            <p>
+              Já tem conta? 
+              <button type="button" onClick={switchMode} className="auth-link">
+                Fazer login
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component
+const AppContent = () => {
   const canvasRef = useRef(null);
   const [templates, setTemplates] = useState([]);
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [selectedElement, setSelectedElement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
-  const [templateInfoExpanded, setTemplateInfoExpanded] = useState(true);
+  
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   
   // Template structure
   const [templateElements, setTemplateElements] = useState([]);
@@ -30,6 +306,7 @@ const App = () => {
   const [isEndpointExpanded, setIsEndpointExpanded] = useState(false);
   const [isFirstTimeCreated, setIsFirstTimeCreated] = useState(false);
 
+  const { user, isAuthenticated, logout, getAuthHeaders } = useAuth();
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
   useEffect(() => {
@@ -39,7 +316,8 @@ const App = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/templates`);
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/templates`, { headers });
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
@@ -503,11 +781,38 @@ const App = () => {
     const file = e.target.files[0];
     if (!file || selectedElement === null) return;
     
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      updateSelectedElement('src', event.target.result);
-    };
-    reader.readAsDataURL(file);
+    if (!isAuthenticated) {
+      alert('Você precisa estar logado para fazer upload de imagens');
+      setShowAuthModal(true);
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/upload`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        updateSelectedElement('src', result.file_url);
+      } else {
+        const error = await response.json();
+        alert(`Erro no upload: ${error.detail || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      // Fallback to local file reading for non-authenticated users
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        updateSelectedElement('src', event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleBackgroundUpload = async (e) => {
@@ -527,20 +832,30 @@ const App = () => {
       return;
     }
     
+    if (!isAuthenticated) {
+      alert('Você precisa estar logado para salvar templates');
+      setShowAuthModal(true);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const templateData = {
         name: templateName,
         elements: templateElements,
         background: templateBackground,
-        dimensions: { width: canvasWidth, height: canvasHeight }
+        dimensions: { width: canvasWidth, height: canvasHeight },
+        is_public: false
+      };
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
       };
       
       const response = await fetch(`${backendUrl}/api/templates`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(templateData),
       });
       
@@ -552,7 +867,8 @@ const App = () => {
         setIsFirstTimeCreated(true);
         setIsEndpointExpanded(true); // Expand when first created
       } else {
-        alert('Erro ao salvar template');
+        const error = await response.json();
+        alert(`Erro ao salvar template: ${error.detail || 'Erro desconhecido'}`);
       }
     } catch (error) {
       alert('Erro ao salvar template: ' + error.message);
@@ -562,7 +878,8 @@ const App = () => {
 
   const loadTemplate = async (templateId) => {
     try {
-      const response = await fetch(`${backendUrl}/api/templates/${templateId}`);
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/templates/${templateId}`, { headers });
       if (response.ok) {
         const template = await response.json();
         setCurrentTemplate(template);
@@ -572,6 +889,9 @@ const App = () => {
         setSelectedElement(null);
         setIsFirstTimeCreated(false);
         setIsEndpointExpanded(false); // Minimize when loading existing template
+      } else {
+        const error = await response.json();
+        alert(`Erro ao carregar template: ${error.detail || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Erro ao carregar template:', error);
@@ -712,43 +1032,76 @@ const App = () => {
   return (
     <div className="app">
       <div className="header">
-        <div className="header-brand">
-          <div className="header-logo">
-            ✨
-          </div>
-          <div>
-            <h1>Canva de Convites</h1>
-            <div className="header-subtitle">Design para convites personalizados</div>
-          </div>
+        <div className="header-left">
+          <h1>✨ Editor de Convites Premium</h1>
+          <div className="version-badge">v2.0 Enterprise</div>
         </div>
         
-        <div className="header-stats">
-          <div className="stat-item">
-            <span className="stat-number">{templates.length}</span>
-            <span className="stat-label">Templates</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">∞</span>
-            <span className="stat-label">Possibilidades</span>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <button 
-            className="btn btn-primary btn-medium"
-            onClick={createNewTemplate}
-          >
-            ✨ Novo Template
-          </button>
-          <button 
-            className="btn btn-success btn-medium"
-            onClick={saveTemplate}
-            disabled={isLoading}
-          >
-            {isLoading ? '💾 Salvando...' : '💾 Salvar Template'}
-          </button>
+        <div className="header-right">
+          {isAuthenticated ? (
+            <div className="user-menu">
+              <div className="user-info">
+                <span className="user-avatar">
+                  {user?.role === 'admin' ? '👑' : '👤'}
+                </span>
+                <div className="user-details">
+                  <span className="user-name">{user?.full_name}</span>
+                  <span className="user-role">{user?.role}</span>
+                </div>
+              </div>
+              <button 
+                className="btn btn-outline"
+                onClick={logout}
+                title="Sair da conta"
+              >
+                🚪 Sair
+              </button>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button 
+                className="btn btn-outline"
+                onClick={() => {
+                  setAuthMode('login');
+                  setShowAuthModal(true);
+                }}
+              >
+                🔐 Entrar
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  setAuthMode('register');
+                  setShowAuthModal(true);
+                }}
+              >
+                ✨ Criar Conta
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {!isAuthenticated && (
+        <div className="guest-banner">
+          <div className="guest-content">
+            <span className="guest-icon">🎯</span>
+            <div className="guest-text">
+              <strong>Modo Visitante</strong>
+              <p>Crie uma conta para salvar templates, fazer upload de imagens e acessar recursos premium!</p>
+            </div>
+            <button 
+              className="btn btn-primary btn-small"
+              onClick={() => {
+                setAuthMode('register');
+                setShowAuthModal(true);
+              }}
+            >
+              Criar Conta Grátis
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="main-content">
         <div className="sidebar">
@@ -757,68 +1110,51 @@ const App = () => {
               className={`tab ${activeTab === 'templates' ? 'active' : ''}`}
               onClick={() => setActiveTab('templates')}
             >
-              Templates
+              📋 Templates
             </button>
             <button 
               className={`tab ${activeTab === 'elements' ? 'active' : ''}`}
               onClick={() => setActiveTab('elements')}
             >
-              Elementos
+              🎨 Elementos
             </button>
             <button 
               className={`tab ${activeTab === 'properties' ? 'active' : ''}`}
               onClick={() => setActiveTab('properties')}
             >
-              Propriedades
+              ⚙️ Propriedades
             </button>
           </div>
 
           <div className="tab-content">
             {activeTab === 'templates' && (
               <div className="templates-panel">
-                <h3>Meus Templates</h3>
+                <h3>📋 Meus Templates</h3>
                 <div className="templates-grid">
                   {templates.map((template) => (
                     <div 
                       key={template.id} 
                       className="template-card"
+                      onClick={() => loadTemplate(template.id)}
                     >
-                      <div className="template-card-content">
-                        <div 
-                          className="template-preview"
-                          onClick={() => loadTemplate(template.id)}
-                        >
-                          <span>{template.name}</span>
-                        </div>
-                        <div className="template-actions">
-                          <button 
-                            className="btn-icon btn-edit"
-                            onClick={() => loadTemplate(template.id)}
-                            title="Editar template"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            className="btn-icon btn-delete"
-                            onClick={(e) => {
-                              console.log('Botão de delete clicado', { templateId: template.id, templateName: template.name }); // Debug
-                              e.preventDefault();
-                              e.stopPropagation();
-                              deleteTemplate(template.id, template.name);
-                            }}
-                            title="Excluir template"
-                            disabled={isLoading}
-                          >
-                            🗑️
-                          </button>
+                      <div className="template-preview">
+                        <span className="template-name">{template.name}</span>
+                        <div className="template-meta">
+                          <span className="template-elements">
+                            {template.elements?.length || 0} elementos
+                          </span>
+                          {template.is_public && (
+                            <span className="template-public-badge">🌐 Público</span>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                   {templates.length === 0 && (
-                    <div className="no-templates">
-                      <p>Nenhum template criado ainda.</p>
-                      <p>Crie seu primeiro template usando o editor!</p>
+                    <div className="empty-templates">
+                      <span className="empty-icon">📝</span>
+                      <p>Nenhum template encontrado</p>
+                      <small>Crie seu primeiro template!</small>
                     </div>
                   )}
                 </div>
@@ -1170,13 +1506,33 @@ const App = () => {
 
         <div className="canvas-area">
           <div className="canvas-header">
-            <input 
-              type="text"
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-              className="template-name-input"
-              placeholder="Nome do template"
-            />
+            <div className="template-name-section">
+              <input 
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                className="template-name-input"
+                placeholder="Nome do template"
+              />
+              <div className="template-actions">
+                <button 
+                  className="btn btn-outline btn-small"
+                  onClick={createNewTemplate}
+                  title="Criar novo template"
+                >
+                  ✨ Novo
+                </button>
+                <button 
+                  className="btn btn-success btn-small"
+                  onClick={saveTemplate}
+                  disabled={isLoading}
+                  title="Salvar template atual"
+                >
+                  {isLoading ? '💾 Salvando...' : '💾 Salvar'}
+                </button>
+              </div>
+            </div>
+            
             {currentTemplate && (
               <div className="template-info">
                 <div 
@@ -1317,7 +1673,22 @@ ${templateElements.map((element, index) =>
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        mode={authMode}
+      />
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

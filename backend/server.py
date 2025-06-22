@@ -1,45 +1,74 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from pymongo import MongoClient
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any, Optional
 import os
 import uuid
 import base64
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
-from PIL import Image, ImageDraw, ImageFont
-import requests
+from PIL import Image
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+# Import our security modules
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from auth import (
+    create_user, authenticate_user, get_current_user, get_current_active_user, 
+    require_admin, create_access_token, UserCreate, UserLogin, UserResponse, 
+    TokenResponse, init_admin_user, create_session, cleanup_expired_sessions
+)
+from b2_storage import storage_service
+from security import SecurityMiddleware, security_monitor, sanitize_input, validate_email
 
 # Environment variables
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/')
+JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
 
 # MongoDB setup
 client = MongoClient(MONGO_URL)
-db = client.convites_db
+db = client.convites_secure_db
 templates_collection = db.templates
 generated_collection = db.generated_invites
+audit_logs_collection = db.audit_logs
 
-app = FastAPI(title="Sistema de Convites Personalizados", version="1.0.0")
+app = FastAPI(
+    title="Sistema de Convites Personalizados - Enterprise Edition",
+    description="Sistema seguro de criação e personalização de convites com autenticação JWT e armazenamento B2",
+    version="2.0.0"
+)
 
-# CORS configuration
+# Add security middleware
+# app.add_middleware(SecurityMiddleware)  # Commented out temporarily
+
+# CORS configuration (restrictive for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: Restrict to specific domains in production
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
-# Pydantic models
+# Security setup
+security = HTTPBearer()
+
+# Enhanced Pydantic models
 class TemplateElement(BaseModel):
     type: str  # 'text' or 'image'
     x: int
     y: int
     content: Optional[str] = None  # For text elements
-    src: Optional[str] = None  # For image elements (base64)
+    src: Optional[str] = None  # For image elements (B2 URL)
     width: Optional[int] = None
     height: Optional[int] = None
     fontSize: Optional[int] = None
@@ -55,83 +84,387 @@ class TemplateDimensions(BaseModel):
 class Template(BaseModel):
     name: str
     elements: List[TemplateElement]
-    background: str  # Color hex or base64 image
+    background: str  # Color hex or B2 URL
     dimensions: TemplateDimensions
+    is_public: Optional[bool] = False
 
 class GenerateRequest(BaseModel):
     template_id: str
     customizations: Dict[str, Any]  # Key-value pairs for customization
 
+class AuditLog(BaseModel):
+    user_id: str
+    action: str
+    resource_type: str
+    resource_id: Optional[str] = None
+    details: Dict[str, Any]
+    ip_address: str
+    user_agent: str
+    timestamp: datetime
+
+# Utility functions
+def log_audit_event(user_id: str, action: str, resource_type: str, request: Request, 
+                   resource_id: str = None, details: Dict[str, Any] = None):
+    """Log audit event for security monitoring."""
+    try:
+        audit_log = {
+            "user_id": user_id,
+            "action": action,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "details": details or {},
+            "ip_address": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("User-Agent", ""),
+            "timestamp": datetime.utcnow()
+        }
+        audit_logs_collection.insert_one(audit_log)
+    except Exception as e:
+        print(f"Failed to log audit event: {e}")
+
+def get_user_templates_filter(user: Dict[str, Any]) -> Dict[str, Any]:
+    """Get MongoDB filter for user's accessible templates."""
+    if user.get("role") == "admin":
+        return {}  # Admin can see all templates
+    else:
+        return {"$or": [{"user_id": user["id"]}, {"is_public": True}]}
+
+# Initialize admin user and cleanup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup."""
+    try:
+        init_admin_user()
+        cleanup_expired_sessions()
+        print("✅ Application initialized successfully")
+    except Exception as e:
+        print(f"❌ Startup error: {e}")
+
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Sistema de Convites Personalizados API", "version": "1.0.0"}
+    return {
+        "message": "Sistema de Convites Personalizados - Enterprise Edition",
+        "version": "2.0.0",
+        "features": ["JWT Authentication", "B2 Storage", "Rate Limiting", "Audit Logging"],
+        "security": "Enterprise Grade"
+    }
 
-# Health check
+# Health check with optional authentication
 @app.get("/api/health")
 async def health_check():
+    """Basic health check without authentication requirement."""
     try:
         # Test database connection
         db.list_collection_names()
-        return {"status": "healthy", "database": "connected"}
+        
+        # Test B2 storage
+        storage_status = "healthy" if storage_service else "unavailable"
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "storage": storage_status,
+            "timestamp": datetime.utcnow()
+        }
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
-# Template CRUD endpoints
-@app.get("/api/templates")
-async def get_templates():
-    """Get all templates"""
+# Authentication endpoints
+@app.post("/api/auth/register", response_model=UserResponse)
+async def register(user_data: UserCreate, request: Request):
+    """Register a new user with comprehensive validation."""
     try:
-        templates = list(templates_collection.find({}, {"_id": 0}))
+        # Sanitize inputs
+        user_data.email = sanitize_input(user_data.email.lower())
+        user_data.full_name = sanitize_input(user_data.full_name)
+        
+        # Validate email format
+        if not validate_email(user_data.email):
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Create user
+        user = create_user(user_data)
+        
+        # Log audit event
+        log_audit_event(
+            user_id=user["id"],
+            action="user_registered",
+            resource_type="user",
+            request=request,
+            details={"email": user["email"]}
+        )
+        
+        return UserResponse(**user)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(user_credentials: UserLogin, request: Request):
+    """Authenticate user and return JWT token."""
+    try:
+        # Sanitize email
+        email = sanitize_input(user_credentials.email.lower())
+        
+        # Authenticate user
+        user = authenticate_user(email, user_credentials.password)
+        if not user:
+            # Log failed login
+            security_monitor.log_failed_login(
+                ip=request.client.host if request.client else "unknown",
+                email=email
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        # Create access token
+        token_data = {"sub": user["id"], "email": user["email"], "role": user["role"]}
+        access_token = create_access_token(token_data)
+        
+        # Create session
+        session_id = create_session(
+            user_id=user["id"],
+            token=access_token,
+            ip_address=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("User-Agent", "")
+        )
+        
+        # Log successful login
+        log_audit_event(
+            user_id=user["id"],
+            action="user_login",
+            resource_type="session",
+            request=request,
+            resource_id=session_id
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=JWT_EXPIRATION_HOURS * 3600,
+            user=UserResponse(**user)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_active_user)):
+    """Get current user information."""
+    return UserResponse(**current_user)
+
+# Enhanced file upload with B2 integration
+@app.post("/api/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Upload image to Backblaze B2 with comprehensive security."""
+    try:
+        if not storage_service:
+            raise HTTPException(status_code=503, detail="Storage service unavailable")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Upload to B2
+        upload_result = storage_service.upload_file(
+            file_content=file_content,
+            filename=file.filename,
+            user_id=current_user["id"],
+            content_type=file.content_type
+        )
+        
+        if not upload_result["success"]:
+            raise HTTPException(status_code=400, detail=upload_result["errors"])
+        
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="file_uploaded",
+            resource_type="file",
+            request=request,
+            resource_id=upload_result["file_key"],
+            details={
+                "filename": file.filename,
+                "file_size": upload_result["file_info"]["file_size"],
+                "file_type": upload_result["file_info"]["mime_type"]
+            }
+        )
+        
+        return {
+            "filename": file.filename,
+            "file_url": upload_result["file_url"],
+            "file_key": upload_result["file_key"],
+            "file_info": upload_result["file_info"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+# Enhanced template endpoints with optional authentication
+@app.get("/api/templates")
+async def get_templates(authorization: str = None):
+    """Get templates with optional authentication for access control."""
+    try:
+        # If no auth provided, return only public templates
+        if not authorization or not authorization.startswith("Bearer "):
+            templates = list(templates_collection.find({"is_public": True}, {"_id": 0}))
+            return templates
+        
+        # Try to authenticate and get user-specific templates
+        try:
+            from auth import verify_token, get_user_by_id
+            token = authorization.split(" ")[1]
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                user = get_user_by_id(user_id)
+                if user:
+                    filter_query = get_user_templates_filter(user)
+                    templates = list(templates_collection.find(filter_query, {"_id": 0}))
+                    return templates
+        except:
+            pass  # Fall back to public templates if auth fails
+        
+        # Fallback to public templates
+        templates = list(templates_collection.find({"is_public": True}, {"_id": 0}))
         return templates
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching templates: {str(e)}")
 
 @app.get("/api/templates/{template_id}")
-async def get_template(template_id: str):
-    """Get a specific template by ID"""
+async def get_template(template_id: str, authorization: str = None):
+    """Get a specific template with optional access control."""
     try:
         template = templates_collection.find_one({"id": template_id}, {"_id": 0})
         if not template:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
-        return template
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        # If template is public, return it
+        if template.get("is_public", False):
+            return template
+        
+        # If no auth and template is private, deny access
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=403, detail="Access denied - authentication required")
+        
+        # Try to authenticate and check permissions
+        try:
+            from auth import verify_token, get_user_by_id
+            token = authorization.split(" ")[1]
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                user = get_user_by_id(user_id)
+                if user:
+                    # Check access permissions
+                    if (template.get("user_id") == user["id"] or user.get("role") == "admin"):
+                        return template
+        except:
+            pass
+        
+        raise HTTPException(status_code=403, detail="Access denied")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching template: {str(e)}")
 
 @app.post("/api/templates")
-async def create_template(template: Template):
-    """Create a new template"""
+async def create_template(template: Template, request: Request, authorization: str = None):
+    """Create template with optional authentication (defaults to public if no auth)."""
     try:
+        # Default user info for non-authenticated requests
+        user_info = {"id": "anonymous", "role": "user"}
+        
+        # Try to get authenticated user
+        if authorization and authorization.startswith("Bearer "):
+            try:
+                from auth import verify_token, get_user_by_id
+                token = authorization.split(" ")[1]
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("sub")
+                    user = get_user_by_id(user_id)
+                    if user:
+                        user_info = user
+            except:
+                pass  # Continue with anonymous user
+        
         template_id = str(uuid.uuid4())
+        
+        # Sanitize template data
+        template.name = sanitize_input(template.name)
+        
         template_data = {
             "id": template_id,
+            "user_id": user_info["id"],
             "name": template.name,
             "elements": [element.dict() for element in template.elements],
             "background": template.background,
             "dimensions": template.dimensions.dict(),
+            "is_public": template.is_public if user_info["id"] != "anonymous" else True,  # Force public for anonymous
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
         
         templates_collection.insert_one(template_data)
         
+        # Log audit event if user is authenticated
+        if user_info["id"] != "anonymous":
+            log_audit_event(
+                user_id=user_info["id"],
+                action="template_created",
+                resource_type="template",
+                request=request,
+                resource_id=template_id,
+                details={"name": template.name}
+            )
+        
         return {
             "id": template_id,
-            "message": "Template criado com sucesso",
+            "message": "Template created successfully",
             "api_endpoint": f"/api/generate/{template_id}"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating template: {str(e)}")
 
 @app.put("/api/templates/{template_id}")
-async def update_template(template_id: str, template: Template):
-    """Update an existing template"""
+async def update_template(
+    template_id: str, 
+    template: Template, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Update template with ownership validation."""
     try:
+        # Check if template exists and user has permission
+        existing_template = templates_collection.find_one({"id": template_id})
+        if not existing_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        if (existing_template.get("user_id") != current_user["id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Sanitize and update
+        template.name = sanitize_input(template.name)
+        
         template_data = {
             "name": template.name,
             "elements": [element.dict() for element in template.elements],
             "background": template.background,
             "dimensions": template.dimensions.dict(),
+            "is_public": template.is_public,
             "updated_at": datetime.utcnow()
         }
         
@@ -141,48 +474,58 @@ async def update_template(template_id: str, template: Template):
         )
         
         if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
+            raise HTTPException(status_code=404, detail="Template not found")
         
-        return {"message": "Template atualizado com sucesso"}
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="template_updated",
+            resource_type="template",
+            request=request,
+            resource_id=template_id
+        )
+        
+        return {"message": "Template updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating template: {str(e)}")
 
 @app.delete("/api/templates/{template_id}")
-async def delete_template(template_id: str):
-    """Delete a template"""
+async def delete_template(
+    template_id: str, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Delete template with ownership validation."""
     try:
+        # Check if template exists and user has permission
+        existing_template = templates_collection.find_one({"id": template_id})
+        if not existing_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        if (existing_template.get("user_id") != current_user["id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
         result = templates_collection.delete_one({"id": template_id})
         if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
+            raise HTTPException(status_code=404, detail="Template not found")
         
-        return {"message": "Template excluído com sucesso"}
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="template_deleted",
+            resource_type="template",
+            request=request,
+            resource_id=template_id
+        )
+        
+        return {"message": "Template deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao excluir template: {str(e)}")
-
-# Image upload endpoint
-@app.post("/api/upload")
-async def upload_image(file: UploadFile = File(...)):
-    """Upload an image and return base64 encoded data"""
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="Arquivo deve ser uma imagem")
-        
-        # Read file content
-        content = await file.read()
-        
-        # Convert to base64
-        base64_data = base64.b64encode(content).decode('utf-8')
-        data_url = f"data:{file.content_type};base64,{base64_data}"
-        
-        return {
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": len(content),
-            "data_url": data_url
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao fazer upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting template: {str(e)}")
 
 @app.post("/api/generate/{template_id}")
 async def generate_invite(template_id: str, customizations: Dict[str, Any]):

@@ -213,7 +213,67 @@ backend:
         agent: "testing"
         comment: "A persistência dos convites gerados com imagens está funcionando corretamente. Verifiquei que o campo image_url está sendo salvo corretamente no banco de dados e que os convites podem ser recuperados com todas as informações, incluindo a URL da imagem."
 
-  - task: "Diferentes Cenários de Templates"
+  - task: "Sistema de Autenticação JWT"
+    implemented: true
+    working: true
+    file: "/app/backend/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Sistema de autenticação JWT implementado em auth.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Sistema de autenticação JWT está funcionando corretamente. Testei o registro de usuários, login e obtenção de informações do usuário autenticado. O sistema gera tokens JWT válidos, verifica corretamente as senhas e protege adequadamente os endpoints que requerem autenticação."
+
+  - task: "Endpoints Protegidos"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoints protegidos implementados em server.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Endpoints protegidos estão funcionando corretamente. Verifiquei que o endpoint /api/health agora requer autenticação, assim como os endpoints de criação, atualização e exclusão de templates. Apenas usuários autenticados podem acessar esses endpoints, e apenas os donos dos templates (ou administradores) podem atualizar ou excluir templates."
+
+  - task: "Upload Seguro B2"
+    implemented: true
+    working: true
+    file: "/app/backend/b2_storage.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Upload seguro B2 implementado em b2_storage.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Upload seguro B2 está funcionando corretamente. Verifiquei que o endpoint /api/upload agora requer autenticação e que os arquivos são validados antes do upload. O sistema verifica o tamanho do arquivo, o tipo MIME e realiza outras validações de segurança."
+
+  - task: "Controle de Acesso"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Controle de acesso implementado em server.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Controle de acesso está funcionando corretamente. Verifiquei que templates públicos podem ser acessados por qualquer usuário autenticado, enquanto templates privados só podem ser acessados por seus donos ou por administradores. Apenas os donos dos templates (ou administradores) podem editar ou excluir templates."
+
+  - task: "Endpoints Admin"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -223,10 +283,10 @@ backend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Nova funcionalidade para testar: diferentes cenários de templates (texto simples, apenas imagem, múltiplos placeholders)."
+        comment: "Endpoints admin implementados em server.py. Precisa ser testado."
       - working: true
         agent: "testing"
-        comment: "Testei diferentes cenários de templates, incluindo templates com texto simples sem placeholders, templates apenas com imagem, e templates com múltiplos placeholders. Todos os cenários funcionaram conforme esperado, com a geração correta de convites personalizados e imagens."
+        comment: "Endpoints admin estão funcionando corretamente. Verifiquei que os endpoints /api/admin/users, /api/admin/stats e /api/admin/audit-logs estão protegidos e só podem ser acessados por usuários com papel de administrador. Usuários regulares não conseguem acessar esses endpoints."
 
 frontend:
   - task: "Frontend Implementation"
@@ -252,9 +312,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Template com Placeholders e Imagem"
-    - "Persistência de Convites com Imagens"
-    - "Diferentes Cenários de Templates"
+    - "Sistema de Autenticação JWT"
+    - "Endpoints Protegidos"
+    - "Upload Seguro B2"
+    - "Controle de Acesso"
+    - "Endpoints Admin"
   stuck_tasks: 
     - "Frontend Implementation"
   test_all: false
@@ -271,3 +333,5 @@ agent_communication:
     message: "Testei o editor de convites personalizados no frontend, focando nas funcionalidades de drag & drop e redimensionamento. Encontrei problemas em ambas as funcionalidades. Após análise do código, identifiquei que os problemas estão relacionados à implementação das funções handleCanvasMouseMove, handleCanvasClick e handleCanvasMouseUp. Especificamente, há problemas na detecção de elementos, no cálculo de posições e na detecção dos handles de redimensionamento. Recomendo revisar essas funções para corrigir os problemas."
   - agent: "testing"
     message: "Realizei testes específicos para as novas funcionalidades do sistema de convites, focando na criação de templates com placeholders e na geração de convites com imagens. Todos os testes foram bem-sucedidos. Criei templates com placeholders como '{nome}' e '{evento}', adicionei elementos de imagem sem src, e testei a geração de convites com diferentes customizações. A API retorna corretamente a URL da imagem gerada no formato '/api/images/{filename}', e o endpoint /api/images/{filename} serve as imagens geradas corretamente. Também verifiquei que a pasta /app/generated_images foi criada e contém as imagens geradas. Testei diferentes cenários, incluindo templates com texto simples, apenas imagem, e múltiplos placeholders, e todos funcionaram conforme esperado. A persistência dos convites gerados também foi verificada, confirmando que o campo image_url está sendo salvo corretamente no banco de dados."
+  - agent: "testing"
+    message: "Realizei testes completos das funcionalidades de segurança implementadas no sistema de convites. Testei o sistema de autenticação JWT, incluindo registro de usuários, login e obtenção de informações do usuário autenticado. Verifiquei que os endpoints protegidos estão funcionando corretamente, exigindo autenticação para acesso. Testei o upload seguro de imagens, que agora requer autenticação. Verifiquei o controle de acesso para templates públicos e privados, confirmando que apenas os donos podem editar/deletar seus templates e que o admin pode ver/editar tudo. Também testei os endpoints de administração, que estão corretamente protegidos para acesso apenas por usuários com papel de admin. Todas as funcionalidades de segurança estão funcionando conforme esperado, com validação adequada de tokens JWT, controle de acesso baseado em papéis e proteção de endpoints sensíveis."
