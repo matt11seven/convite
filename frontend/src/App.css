@@ -1443,17 +1443,154 @@ body {
 }
 
 .template-info {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  padding: 2rem;
-  border-radius: 20px;
-  border: 1px solid var(--glass-border);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-  box-shadow: var(--shadow-lg);
-  position: relative;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
   overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.endpoint-header {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.endpoint-header:hover {
+  background: #e9ecef;
+}
+
+.endpoint-title {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expand-icon {
+  font-size: 0.8rem;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.endpoint-details {
+  padding: 1rem;
+}
+
+.endpoint-item {
+  margin-bottom: 1rem;
+}
+
+.endpoint-item:last-child {
+  margin-bottom: 0;
+}
+
+.endpoint-item strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.endpoint-code {
+  background: #f1f3f4;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: #2d3748;
+  display: inline-block;
+  max-width: calc(100% - 50px);
+  word-break: break-all;
+  margin-right: 0.5rem;
+}
+
+.copy-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #5a67d8;
+}
+
+.customizable-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.field-item {
+  background: #e6fffa;
+  border: 1px solid #81e6d9;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.field-item code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.field-type {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.json-example {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: #2d3748;
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .endpoint-code {
+    max-width: calc(100% - 40px);
+    font-size: 0.8rem;
+  }
+  
+  .customizable-fields {
+    flex-direction: column;
+  }
+  
+  .json-example {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+  }
 }
 
 .template-id,
