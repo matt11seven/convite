@@ -1537,6 +1537,18 @@ const AppContent = () => {
                   <span className="btn-icon">{isLoading ? '⏳' : '💾'}</span>
                   <span className="btn-text">{isLoading ? 'Salvando' : 'Salvar'}</span>
                 </button>
+                
+                {currentTemplate && (
+                  <button 
+                    className="btn-template btn-delete"
+                    onClick={deleteCurrentTemplate}
+                    disabled={isLoading}
+                    title="Excluir template atual permanentemente"
+                  >
+                    <span className="btn-icon">🗑️</span>
+                    <span className="btn-text">Excluir</span>
+                  </button>
+                )}
               </div>
             </div>
             
