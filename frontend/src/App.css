@@ -1807,7 +1807,7 @@ body {
   content: 'JSON';
   position: absolute;
   top: 0.5rem;
-  right: 1rem;
+  left: 1rem;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   padding: 0.25rem 0.75rem;
@@ -1820,7 +1820,7 @@ body {
 
 .copy-json-btn {
   position: absolute;
-  top: 1rem;
+  top: 0.75rem;
   right: 1rem;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
