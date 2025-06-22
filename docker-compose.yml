@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  convites-app:
+    build: .
+    container_name: convites-app
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/
+      - B2_ENDPOINT=${B2_ENDPOINT}
+      - B2_ACCESS_KEY_ID=${B2_ACCESS_KEY_ID}
+      - B2_SECRET_ACCESS_KEY=${B2_SECRET_ACCESS_KEY}
+      - B2_BUCKET_NAME=${B2_BUCKET_NAME}
+      - B2_REGION=${B2_REGION}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_HOURS=24
+      - MAX_FILE_SIZE=5242880
+      - ALLOWED_EXTENSIONS=jpg,jpeg,png,gif,webp
+      - RATE_LIMIT_PER_MINUTE=30
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@convites.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-SecureAdminPassword!}
+    volumes:
+      - ./generated_images:/app/generated_images
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:5
+    container_name: convites-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    command: mongod --bind_ip_all
+
+volumes:
+  mongodb_data:

@@ -1,0 +1,67 @@
+# Version control
+.git
+.gitignore
+.gitconfig
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js/React
+frontend/node_modules/
+frontend/.pnp/
+frontend/.pnp.js
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Development and testing
+.vscode/
+.idea/
+.pytest_cache/
+tests/
+*_test.py
+backend_test*.py
+template_image_test.py
+test_result.md
+.emergent/
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated files
+generated_images/*
+!generated_images/.gitkeep
+
+# Miscellaneous
+*.log
+.DS_Store
+README.md
