@@ -177,13 +177,17 @@ class ConvitesAPITest(unittest.TestCase):
         }
         
         try:
+            print(f"Sending request to: {API_BASE_URL}/generate/{self.__class__.template_id}")
+            print(f"With customizations: {json.dumps(customizations, indent=2)}")
+            
             response = requests.post(
                 f"{API_BASE_URL}/generate/{self.__class__.template_id}",
                 json=customizations
             )
             print(f"Response status: {response.status_code}")
+            print(f"Response content: {response.text[:500]}")
+            
             if response.status_code != 200:
-                print(f"Error response: {response.text}")
                 self.__class__.invite_id = None
                 return
             
