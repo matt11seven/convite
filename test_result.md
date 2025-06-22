@@ -312,9 +312,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Template com Placeholders e Imagem"
-    - "Persistência de Convites com Imagens"
-    - "Diferentes Cenários de Templates"
+    - "Sistema de Autenticação JWT"
+    - "Endpoints Protegidos"
+    - "Upload Seguro B2"
+    - "Controle de Acesso"
+    - "Endpoints Admin"
   stuck_tasks: 
     - "Frontend Implementation"
   test_all: false
