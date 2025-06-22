@@ -901,6 +901,11 @@ const AppContent = () => {
   const deleteCurrentTemplate = async () => {
     if (!currentTemplate) return;
     
+    if (!isAuthenticated) {
+      alert('Você precisa estar logado para excluir templates');
+      return;
+    }
+    
     const confirmMessage = `Tem certeza que deseja excluir o template "${currentTemplate.name}"?\n\nEsta ação não pode ser desfeita.`;
     
     if (!window.confirm(confirmMessage)) {
@@ -909,8 +914,10 @@ const AppContent = () => {
     
     setIsLoading(true);
     try {
+      const headers = getAuthHeaders();
       const response = await fetch(`${backendUrl}/api/templates/${currentTemplate.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
       
       if (response.ok) {
