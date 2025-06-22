@@ -1038,43 +1038,76 @@ const AppContent = () => {
   return (
     <div className="app">
       <div className="header">
-        <div className="header-brand">
-          <div className="header-logo">
-            ✨
-          </div>
-          <div>
-            <h1>Canva de Convites</h1>
-            <div className="header-subtitle">Design para convites personalizados</div>
-          </div>
+        <div className="header-left">
+          <h1>✨ Editor de Convites Premium</h1>
+          <div className="version-badge">v2.0 Enterprise</div>
         </div>
         
-        <div className="header-stats">
-          <div className="stat-item">
-            <span className="stat-number">{templates.length}</span>
-            <span className="stat-label">Templates</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">∞</span>
-            <span className="stat-label">Possibilidades</span>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <button 
-            className="btn btn-primary btn-medium"
-            onClick={createNewTemplate}
-          >
-            ✨ Novo Template
-          </button>
-          <button 
-            className="btn btn-success btn-medium"
-            onClick={saveTemplate}
-            disabled={isLoading}
-          >
-            {isLoading ? '💾 Salvando...' : '💾 Salvar Template'}
-          </button>
+        <div className="header-right">
+          {isAuthenticated ? (
+            <div className="user-menu">
+              <div className="user-info">
+                <span className="user-avatar">
+                  {user?.role === 'admin' ? '👑' : '👤'}
+                </span>
+                <div className="user-details">
+                  <span className="user-name">{user?.full_name}</span>
+                  <span className="user-role">{user?.role}</span>
+                </div>
+              </div>
+              <button 
+                className="btn btn-outline"
+                onClick={logout}
+                title="Sair da conta"
+              >
+                🚪 Sair
+              </button>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button 
+                className="btn btn-outline"
+                onClick={() => {
+                  setAuthMode('login');
+                  setShowAuthModal(true);
+                }}
+              >
+                🔐 Entrar
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  setAuthMode('register');
+                  setShowAuthModal(true);
+                }}
+              >
+                ✨ Criar Conta
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {!isAuthenticated && (
+        <div className="guest-banner">
+          <div className="guest-content">
+            <span className="guest-icon">🎯</span>
+            <div className="guest-text">
+              <strong>Modo Visitante</strong>
+              <p>Crie uma conta para salvar templates, fazer upload de imagens e acessar recursos premium!</p>
+            </div>
+            <button 
+              className="btn btn-primary btn-small"
+              onClick={() => {
+                setAuthMode('register');
+                setShowAuthModal(true);
+              }}
+            >
+              Criar Conta Grátis
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="main-content">
         <div className="sidebar">
@@ -1083,19 +1116,19 @@ const AppContent = () => {
               className={`tab ${activeTab === 'templates' ? 'active' : ''}`}
               onClick={() => setActiveTab('templates')}
             >
-              Templates
+              📋 Templates
             </button>
             <button 
               className={`tab ${activeTab === 'elements' ? 'active' : ''}`}
               onClick={() => setActiveTab('elements')}
             >
-              Elementos
+              🎨 Elementos
             </button>
             <button 
               className={`tab ${activeTab === 'properties' ? 'active' : ''}`}
               onClick={() => setActiveTab('properties')}
             >
-              Propriedades
+              ⚙️ Propriedades
             </button>
           </div>
 
