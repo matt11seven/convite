@@ -268,13 +268,6 @@ const AuthModal = ({ isOpen, onClose, mode = 'login' }) => {
             </p>
           )}
         </div>
-
-        <div className="auth-demo-info">
-          <h4>🎯 Conta Demo Admin:</h4>
-          <p><strong>Email:</strong> Configurado no .env</p>
-          <p><strong>Senha:</strong> Configurado no .env</p>
-          <small>⚠️ Consulte o administrador do sistema para credenciais</small>
-        </div>
       </div>
     </div>
   );
