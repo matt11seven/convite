@@ -1205,14 +1205,29 @@ const App = () => {
                     </div>
                     
                     <div className="endpoint-item">
-                      <strong>Exemplo de Payload:</strong>
-                      <pre className="json-example">
+                      <strong>🎯 Exemplo de Payload:</strong>
+                      <div className="json-container">
+                        <pre className="json-example">
 {`{
 ${templateElements.map((element, index) => 
-  `  "${element.type}_${index + 1}": "${element.type === 'text' ? 'Novo texto' : 'https://example.com/image.jpg'}"`
+  `  "${element.type}_${index + 1}": "${element.type === 'text' ? 'Novo texto personalizado' : 'https://example.com/image.jpg'}"`
 ).join(',\n')}
 }`}
-                      </pre>
+                        </pre>
+                        <button 
+                          className="copy-json-btn"
+                          onClick={() => {
+                            const payload = `{\n${templateElements.map((element, index) => 
+                              `  "${element.type}_${index + 1}": "${element.type === 'text' ? 'Novo texto personalizado' : 'https://example.com/image.jpg'}"`
+                            ).join(',\n')}\n}`;
+                            navigator.clipboard.writeText(payload);
+                          }}
+                          title="Copiar JSON completo"
+                        >
+                          <span className="copy-icon">📋</span>
+                          <span className="copy-text">Copiar JSON</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
