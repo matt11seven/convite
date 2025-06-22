@@ -898,14 +898,39 @@ const AppContent = () => {
     }
   };
 
-  const createNewTemplate = () => {
-    setCurrentTemplate(null);
-    setTemplateElements([]);
-    setTemplateBackground('#2d1b3d');
-    setTemplateName('Novo Convite');
-    setSelectedElement(null);
-    setIsFirstTimeCreated(false);
-    setIsEndpointExpanded(false);
+  const deleteCurrentTemplate = async () => {
+    if (!currentTemplate) return;
+    
+    const confirmMessage = `Tem certeza que deseja excluir o template "${currentTemplate.name}"?\n\nEsta ação não pode ser desfeita.`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/templates/${currentTemplate.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        alert(`Template "${currentTemplate.name}" excluído com sucesso!`);
+        // Reset to clean state
+        setCurrentTemplate(null);
+        setTemplateElements([]);
+        setTemplateBackground('#2d1b3d');
+        setTemplateName('Novo Convite');
+        setSelectedElement(null);
+        // Reload templates list
+        loadTemplates();
+      } else {
+        const errorData = await response.json();
+        alert(`Erro ao excluir template: ${errorData.detail || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      alert(`Erro ao excluir template: ${error.message}`);
+    }
+    setIsLoading(false);
   };
 
   const deleteTemplate = async (templateId, templateName) => {
