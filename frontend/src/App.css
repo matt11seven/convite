@@ -2234,17 +2234,17 @@ body {
 
 /* Elements Manager - New Clean Design */
 .elements-manager {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fffe 100%);
-  border: 2px solid #d1fae5;
-  border-radius: 16px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
   margin-bottom: 1.5rem;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .elements-header {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  padding: 1rem 1.25rem;
+  background: #10b981;
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2252,46 +2252,44 @@ body {
 
 .elements-title {
   color: white;
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.025em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .btn-clear-all {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
 }
 
 .btn-clear-all:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .elements-list {
-  max-height: 300px;
+  max-height: 240px;
   overflow-y: auto;
+  background: white;
 }
 
 .empty-elements {
   padding: 2rem;
   text-align: center;
   color: #6b7280;
+  background: white;
 }
 
 .empty-icon {
   font-size: 2rem;
   display: block;
   margin-bottom: 0.5rem;
+  color: #9ca3af;
 }
 
 .empty-elements p {
@@ -2301,7 +2299,7 @@ body {
 }
 
 .empty-elements small {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #9ca3af;
 }
 
