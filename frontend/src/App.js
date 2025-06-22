@@ -1135,49 +1135,51 @@ const AppContent = () => {
           <div className="tab-content">
             {activeTab === 'templates' && (
               <div className="templates-panel">
-                <h3>Meus Templates</h3>
+                <div className="templates-header">
+                  <h3>📋 Meus Templates</h3>
+                  <div className="template-actions">
+                    <button 
+                      className="btn btn-primary btn-small"
+                      onClick={createNewTemplate}
+                      title="Criar novo template"
+                    >
+                      ✨ Novo
+                    </button>
+                    <button 
+                      className="btn btn-success btn-small"
+                      onClick={saveTemplate}
+                      disabled={isLoading}
+                      title="Salvar template atual"
+                    >
+                      {isLoading ? '💾 Salvando...' : '💾 Salvar'}
+                    </button>
+                  </div>
+                </div>
                 <div className="templates-grid">
                   {templates.map((template) => (
                     <div 
                       key={template.id} 
                       className="template-card"
+                      onClick={() => loadTemplate(template.id)}
                     >
-                      <div className="template-card-content">
-                        <div 
-                          className="template-preview"
-                          onClick={() => loadTemplate(template.id)}
-                        >
-                          <span>{template.name}</span>
-                        </div>
-                        <div className="template-actions">
-                          <button 
-                            className="btn-icon btn-edit"
-                            onClick={() => loadTemplate(template.id)}
-                            title="Editar template"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            className="btn-icon btn-delete"
-                            onClick={(e) => {
-                              console.log('Botão de delete clicado', { templateId: template.id, templateName: template.name }); // Debug
-                              e.preventDefault();
-                              e.stopPropagation();
-                              deleteTemplate(template.id, template.name);
-                            }}
-                            title="Excluir template"
-                            disabled={isLoading}
-                          >
-                            🗑️
-                          </button>
+                      <div className="template-preview">
+                        <span className="template-name">{template.name}</span>
+                        <div className="template-meta">
+                          <span className="template-elements">
+                            {template.elements?.length || 0} elementos
+                          </span>
+                          {template.is_public && (
+                            <span className="template-public-badge">🌐 Público</span>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                   {templates.length === 0 && (
-                    <div className="no-templates">
-                      <p>Nenhum template criado ainda.</p>
-                      <p>Crie seu primeiro template usando o editor!</p>
+                    <div className="empty-templates">
+                      <span className="empty-icon">📝</span>
+                      <p>Nenhum template encontrado</p>
+                      <small>Crie seu primeiro template!</small>
                     </div>
                   )}
                 </div>
