@@ -215,3 +215,5 @@ agent_communication:
     message: "Iniciando testes do backend para o sistema de convites personalizados. Vou testar todas as APIs conforme solicitado."
   - agent: "testing"
     message: "Testes concluídos. A maioria das APIs está funcionando corretamente, mas há um problema com a geração de convites personalizados. O erro parece estar relacionado à dependência PIL (Pillow) que não está sendo carregada corretamente no ambiente do servidor. Tentei instalar a biblioteca de várias formas, mas o problema persiste. Recomendo verificar a instalação da biblioteca Pillow no ambiente do servidor e garantir que ela esteja disponível para o aplicativo FastAPI."
+  - agent: "testing"
+    message: "Realizei novos testes focados na funcionalidade de geração de convites personalizados. Boas notícias! A API de geração de convites está funcionando corretamente agora. Consegui criar um template '#EUVOU' e gerar um convite personalizado com sucesso. Todas as APIs do backend estão funcionando conforme esperado."
