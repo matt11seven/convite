@@ -356,7 +356,7 @@ body {
 }
 
 .auth-modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   padding: 1.5rem 2rem;
   display: flex;
@@ -412,13 +412,15 @@ body {
   border: 2px solid #e5e7eb;
   border-radius: 10px;
   font-size: 1rem;
+  color: #1f2937;
+  background: white;
   transition: all 0.2s;
 }
 
 .auth-field input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .auth-error {
@@ -433,7 +435,7 @@ body {
 
 .auth-submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
   padding: 0.875rem 1rem;
@@ -446,8 +448,9 @@ body {
 }
 
 .auth-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
 }
 
 .auth-submit-btn:disabled {
@@ -471,7 +474,7 @@ body {
 .auth-link {
   background: none;
   border: none;
-  color: #667eea;
+  color: #10b981;
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
@@ -479,26 +482,7 @@ body {
 }
 
 .auth-link:hover {
-  color: #5a67d8;
-}
-
-.auth-demo-info {
-  background: #f0fdf4;
-  padding: 1rem 2rem;
-  border-top: 1px solid #d1fae5;
-}
-
-.auth-demo-info h4 {
-  margin: 0 0 0.5rem 0;
-  color: #065f46;
-  font-size: 0.9rem;
-}
-
-.auth-demo-info p {
-  margin: 0.25rem 0;
-  color: #047857;
-  font-size: 0.8rem;
-  font-family: 'Consolas', 'Monaco', monospace;
+  color: #059669;
 }
 
 /* Responsive Design for Auth */
