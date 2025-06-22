@@ -2243,7 +2243,7 @@ body {
 
 /* Elements Manager - New Clean Design - OVERRIDE GLOBAL STYLES */
 .properties-panel .elements-manager {
-  background: #ffffff !important;
+  background: #065f46 !important;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   margin-bottom: 1.5rem;
@@ -2284,7 +2284,7 @@ body {
 .properties-panel .elements-list {
   max-height: 240px;
   overflow-y: auto;
-  background: #ffffff !important;
+  background: #065f46 !important;
 }
 
 .properties-panel .empty-elements {
