@@ -182,7 +182,8 @@ class ConvitesAPITest(unittest.TestCase):
                 json=customizations
             )
             print(f"Response status: {response.status_code}")
-            print(f"Response content: {response.text[:200]}...")
+            if response.status_code != 200:
+                print(f"Error response: {response.text}")
             
             self.assertEqual(response.status_code, 200)
             data = response.json()
