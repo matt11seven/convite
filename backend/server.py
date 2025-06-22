@@ -1,35 +1,53 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from pymongo import MongoClient
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Dict, Any, Optional
 import os
 import uuid
 import base64
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
-from PIL import Image, ImageDraw, ImageFont
-import requests
+from PIL import Image
+
+# Import our security modules
+from auth import (
+    create_user, authenticate_user, get_current_user, get_current_active_user, 
+    require_admin, create_access_token, UserCreate, UserLogin, UserResponse, 
+    TokenResponse, init_admin_user, create_session, cleanup_expired_sessions
+)
+from b2_storage import storage_service
+from security import SecurityMiddleware, security_monitor, sanitize_input, validate_email
 
 # Environment variables
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/')
+JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', '24'))
 
 # MongoDB setup
 client = MongoClient(MONGO_URL)
-db = client.convites_db
+db = client.convites_secure_db
 templates_collection = db.templates
 generated_collection = db.generated_invites
+audit_logs_collection = db.audit_logs
 
-app = FastAPI(title="Sistema de Convites Personalizados", version="1.0.0")
+app = FastAPI(
+    title="Sistema de Convites Personalizados - Enterprise Edition",
+    description="Sistema seguro de criação e personalização de convites com autenticação JWT e armazenamento B2",
+    version="2.0.0"
+)
 
-# CORS configuration
+# Add security middleware
+app.add_middleware(SecurityMiddleware)
+
+# CORS configuration (restrictive for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: Restrict to specific domains in production
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
