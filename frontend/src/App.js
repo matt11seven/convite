@@ -1169,36 +1169,66 @@ const App = () => {
                 {isEndpointExpanded && (
                   <div className="endpoint-details">
                     <div className="endpoint-item">
-                      <strong>Template ID:</strong>
-                      <code className="endpoint-code">{currentTemplate.id}</code>
-                      <button 
-                        className="copy-btn"
-                        onClick={() => navigator.clipboard.writeText(currentTemplate.id)}
-                      >
-                        📋
-                      </button>
+                      <strong>🆔 Template ID:</strong>
+                      <div className="code-container">
+                        <code className="endpoint-code">{currentTemplate.id}</code>
+                        <button 
+                          className="copy-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentTemplate.id);
+                            // Add visual feedback
+                            const btn = document.activeElement;
+                            const originalText = btn.innerHTML;
+                            btn.innerHTML = '<span class="copy-icon">✅</span><span class="copy-text">Copiado!</span>';
+                            setTimeout(() => {
+                              btn.innerHTML = originalText;
+                            }, 1500);
+                          }}
+                          title="Copiar Template ID"
+                        >
+                          <span className="copy-icon">📋</span>
+                          <span className="copy-text">Copiar</span>
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="endpoint-item">
-                      <strong>API Endpoint:</strong>
-                      <code className="endpoint-code">
-                        POST {backendUrl}/api/generate/{currentTemplate.id}
-                      </code>
-                      <button 
-                        className="copy-btn"
-                        onClick={() => navigator.clipboard.writeText(`${backendUrl}/api/generate/${currentTemplate.id}`)}
-                      >
-                        📋
-                      </button>
+                      <strong>🚀 API Endpoint:</strong>
+                      <div className="code-container">
+                        <code className="endpoint-code">
+                          POST {backendUrl}/api/generate/{currentTemplate.id}
+                        </code>
+                        <button 
+                          className="copy-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${backendUrl}/api/generate/${currentTemplate.id}`);
+                            const btn = document.activeElement;
+                            const originalText = btn.innerHTML;
+                            btn.innerHTML = '<span class="copy-icon">✅</span><span class="copy-text">Copiado!</span>';
+                            setTimeout(() => {
+                              btn.innerHTML = originalText;
+                            }, 1500);
+                          }}
+                          title="Copiar URL da API"
+                        >
+                          <span className="copy-icon">📋</span>
+                          <span className="copy-text">Copiar</span>
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="endpoint-item">
-                      <strong>Campos Personalizáveis:</strong>
+                      <strong>⚙️ Campos Personalizáveis:</strong>
                       <div className="customizable-fields">
                         {templateElements.map((element, index) => (
                           <div key={index} className="field-item">
+                            <span className="field-icon">
+                              {element.type === 'text' ? '📝' : '🖼️'}
+                            </span>
                             <code>{element.type}_{index + 1}</code>
-                            <span className="field-type">({element.type === 'text' ? 'string' : 'image_url'})</span>
+                            <span className="field-type">
+                              ({element.type === 'text' ? 'string' : 'image_url'})
+                            </span>
                           </div>
                         ))}
                       </div>
