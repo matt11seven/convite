@@ -1,12 +1,13 @@
+# Este Dockerfile foi atualizado para maior compatibilidade com EasyPanel
 FROM node:19-slim AS frontend-build
 
-WORKDIR /app/frontend
+WORKDIR /build-frontend
 
 # Copy frontend files
-COPY frontend/package.json frontend/yarn.lock ./
+COPY ./frontend/package.json ./frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
-COPY frontend/ ./
+COPY ./frontend/ ./
 RUN yarn build
 
 FROM python:3.11-slim
@@ -21,14 +22,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY backend/requirements.txt .
+COPY ./backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY backend/ ./backend/
+COPY ./backend/ ./backend/
 
 # Copy frontend build from previous stage
-COPY --from=frontend-build /app/frontend/build ./frontend/build
+COPY --from=frontend-build /build-frontend/build ./frontend/build
 
 # Create directory for generated images
 RUN mkdir -p /app/generated_images
