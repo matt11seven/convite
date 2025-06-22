@@ -889,8 +889,7 @@ const App = () => {
                     )}
                   </div>
                   
-                  {showElementsList && (
-                    <div className="elements-dropdown">
+                  <div className="elements-list">
                       {templateElements.length === 0 ? (
                         <div className="no-elements-compact">
                           Use a aba "Elementos" para adicionar
