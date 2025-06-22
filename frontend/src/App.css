@@ -1444,39 +1444,41 @@ body {
 
 .template-info {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  border-radius: 12px;
   margin-bottom: 1rem;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
 }
 
 .endpoint-header {
   padding: 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-bottom: 1px solid #d1fae5;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .endpoint-header:hover {
-  background: #e9ecef;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
 }
 
 .endpoint-title {
   font-weight: 600;
-  color: #333;
+  color: white;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.95rem;
 }
 
 .expand-icon {
   font-size: 0.8rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   transition: transform 0.2s;
 }
 
@@ -1485,11 +1487,12 @@ body {
 }
 
 .endpoint-details {
-  padding: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
 }
 
 .endpoint-item {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .endpoint-item:last-child {
@@ -1498,56 +1501,68 @@ body {
 
 .endpoint-item strong {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
+  margin-bottom: 0.75rem;
+  color: #065f46;
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .endpoint-code {
-  background: #f1f3f4;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 0.5rem;
+  background: white;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 0.75rem;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.85rem;
-  color: #2d3748;
+  color: #065f46;
   display: inline-block;
   max-width: calc(100% - 50px);
   word-break: break-all;
   margin-right: 0.5rem;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
 }
 
 .copy-btn {
-  background: #667eea;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
   cursor: pointer;
   font-size: 0.8rem;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 .copy-btn:hover {
-  background: #5a67d8;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 
 .customizable-fields {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .field-item {
-  background: #e6fffa;
-  border: 1px solid #81e6d9;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border: 1px solid #6ee7b7;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+  transition: all 0.2s;
+}
+
+.field-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.15);
 }
 
 .field-item code {
@@ -1555,25 +1570,27 @@ body {
   border: none;
   padding: 0;
   font-weight: 600;
-  color: #2d3748;
+  color: #065f46;
 }
 
 .field-type {
-  color: #666;
+  color: #047857;
   font-size: 0.8rem;
+  font-style: italic;
 }
 
 .json-example {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 1rem;
+  background: white;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 1.2rem;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.85rem;
-  color: #2d3748;
+  color: #065f46;
   overflow-x: auto;
-  margin-top: 0.5rem;
-  line-height: 1.4;
+  margin-top: 0.75rem;
+  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
 /* Responsive adjustments */
@@ -1589,7 +1606,11 @@ body {
   
   .json-example {
     font-size: 0.8rem;
-    padding: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .endpoint-details {
+    padding: 1rem;
   }
 }
 
