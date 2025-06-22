@@ -145,10 +145,10 @@ async def root():
         "security": "Enterprise Grade"
     }
 
-# Health check with enhanced monitoring
+# Health check with optional authentication
 @app.get("/api/health")
-async def health_check(current_user: Dict[str, Any] = Depends(get_current_active_user)):
-    """Enhanced health check with user authentication."""
+async def health_check():
+    """Basic health check without authentication requirement."""
     try:
         # Test database connection
         db.list_collection_names()
@@ -156,22 +156,11 @@ async def health_check(current_user: Dict[str, Any] = Depends(get_current_active
         # Test B2 storage
         storage_status = "healthy" if storage_service else "unavailable"
         
-        # Get basic stats for admins
-        stats = {}
-        if current_user.get("role") == "admin":
-            stats = {
-                "total_users": db.users.count_documents({}),
-                "total_templates": templates_collection.count_documents({}),
-                "total_generated": generated_collection.count_documents({}),
-                "storage_status": storage_status
-            }
-        
         return {
             "status": "healthy",
             "database": "connected",
             "storage": storage_status,
-            "timestamp": datetime.utcnow(),
-            "stats": stats
+            "timestamp": datetime.utcnow()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
