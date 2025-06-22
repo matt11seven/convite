@@ -268,5 +268,5 @@ class ConvitesAPITest(unittest.TestCase):
         print("✅ Delete Template API is working")
 
 if __name__ == "__main__":
-    # Run tests in order
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    # Run tests in order with more verbose output
+    unittest.main(argv=['first-arg-is-ignored', '-v'], exit=False)
