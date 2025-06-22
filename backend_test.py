@@ -176,18 +176,25 @@ class ConvitesAPITest(unittest.TestCase):
             "image": self.image_data_url
         }
         
-        response = requests.post(
-            f"{API_BASE_URL}/generate/{self.__class__.template_id}",
-            json=customizations
-        )
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIn("id", data)
-        self.assertEqual(data["template_id"], self.__class__.template_id)
-        
-        # Save invite ID for later tests
-        self.__class__.invite_id = data["id"]
-        print(f"✅ Generate Invite API is working, created invite ID: {self.__class__.invite_id}")
+        try:
+            response = requests.post(
+                f"{API_BASE_URL}/generate/{self.__class__.template_id}",
+                json=customizations
+            )
+            print(f"Response status: {response.status_code}")
+            print(f"Response content: {response.text[:200]}...")
+            
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertIn("id", data)
+            self.assertEqual(data["template_id"], self.__class__.template_id)
+            
+            # Save invite ID for later tests
+            self.__class__.invite_id = data["id"]
+            print(f"✅ Generate Invite API is working, created invite ID: {self.__class__.invite_id}")
+        except Exception as e:
+            print(f"❌ Error in generate invite test: {str(e)}")
+            raise
         
     def test_08_get_generated_invite(self):
         """Test getting a generated invite"""
