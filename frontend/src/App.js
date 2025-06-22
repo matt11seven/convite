@@ -26,6 +26,10 @@ const App = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState(null);
   const [lastClickPos, setLastClickPos] = useState({ x: canvasWidth / 2, y: canvasHeight / 2 });
+  
+  // Endpoint details state
+  const [isEndpointExpanded, setIsEndpointExpanded] = useState(false);
+  const [isFirstTimeCreated, setIsFirstTimeCreated] = useState(false);
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
