@@ -83,8 +83,19 @@ class B2StorageService:
                 )
                 return validation_result
             
-            # 3. MIME type validation using python-magic
-            mime_type = magic.from_buffer(file_content, mime=True)
+            # 3. MIME type validation using mimetypes (fallback without python-magic)
+            mime_type = mimetypes.guess_type(filename)[0]
+            if not mime_type:
+                # Try to determine from file extension
+                ext_to_mime = {
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg', 
+                    'png': 'image/png',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp'
+                }
+                mime_type = ext_to_mime.get(file_ext, 'image/jpeg')
+            
             allowed_mime_types = [
                 'image/jpeg', 'image/jpg', 'image/png', 
                 'image/gif', 'image/webp'
