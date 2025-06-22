@@ -101,3 +101,100 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Testar o sistema de convites personalizados que acabei de criar"
+
+backend:
+  - task: "Health Check API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoint implementado em server.py, linha 71. Precisa ser testado."
+
+  - task: "Template CRUD Operations"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoints implementados em server.py, linhas 81-160. Precisa ser testado."
+
+  - task: "Image Upload"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoint implementado em server.py, linha 163. Precisa ser testado."
+
+  - task: "Generate Personalized Invites"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoints implementados em server.py, linhas 188-337. Precisa ser testado."
+
+  - task: "API Statistics"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoint implementado em server.py, linha 340. Precisa ser testado."
+
+frontend:
+  - task: "Frontend Implementation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Frontend não será testado pelo testing agent, apenas o backend."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Health Check API"
+    - "Template CRUD Operations"
+    - "Image Upload"
+    - "Generate Personalized Invites"
+    - "API Statistics"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "testing"
+    message: "Iniciando testes do backend para o sistema de convites personalizados. Vou testar todas as APIs conforme solicitado."
