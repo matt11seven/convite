@@ -857,7 +857,8 @@ const AppContent = () => {
 
   const loadTemplate = async (templateId) => {
     try {
-      const response = await fetch(`${backendUrl}/api/templates/${templateId}`);
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/templates/${templateId}`, { headers });
       if (response.ok) {
         const template = await response.json();
         setCurrentTemplate(template);
@@ -867,6 +868,9 @@ const AppContent = () => {
         setSelectedElement(null);
         setIsFirstTimeCreated(false);
         setIsEndpointExpanded(false); // Minimize when loading existing template
+      } else {
+        const error = await response.json();
+        alert(`Erro ao carregar template: ${error.detail || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Erro ao carregar template:', error);
