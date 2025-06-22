@@ -152,11 +152,11 @@ backend:
 
   - task: "Generate Personalized Invites"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -164,6 +164,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Endpoint de geração de convites personalizados não está funcionando corretamente. A API retorna erro 500 ao tentar gerar um convite. Problema pode estar relacionado à dependência PIL (Pillow) que não está sendo carregada corretamente no ambiente do servidor."
+      - working: true
+        agent: "testing"
+        comment: "Endpoint de geração de convites personalizados está funcionando corretamente agora. Testado com sucesso usando o template '#EUVOU' e customizações de texto e imagem. A API retorna o convite gerado com status 200."
 
   - task: "API Statistics"
     implemented: true
