@@ -287,7 +287,10 @@ const AppContent = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
-  const [templateInfoExpanded, setTemplateInfoExpanded] = useState(true);
+  
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   
   // Template structure
   const [templateElements, setTemplateElements] = useState([]);
@@ -309,6 +312,7 @@ const AppContent = () => {
   const [isEndpointExpanded, setIsEndpointExpanded] = useState(false);
   const [isFirstTimeCreated, setIsFirstTimeCreated] = useState(false);
 
+  const { user, isAuthenticated, logout, getAuthHeaders } = useAuth();
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
   useEffect(() => {
