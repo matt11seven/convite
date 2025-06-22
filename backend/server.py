@@ -262,61 +262,164 @@ async def get_current_user_info(current_user: Dict[str, Any] = Depends(get_curre
     """Get current user information."""
     return UserResponse(**current_user)
 
-# Template CRUD endpoints
-@app.get("/api/templates")
-async def get_templates():
-    """Get all templates"""
+# Enhanced file upload with B2 integration
+@app.post("/api/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Upload image to Backblaze B2 with comprehensive security."""
     try:
-        templates = list(templates_collection.find({}, {"_id": 0}))
+        if not storage_service:
+            raise HTTPException(status_code=503, detail="Storage service unavailable")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Upload to B2
+        upload_result = storage_service.upload_file(
+            file_content=file_content,
+            filename=file.filename,
+            user_id=current_user["id"],
+            content_type=file.content_type
+        )
+        
+        if not upload_result["success"]:
+            raise HTTPException(status_code=400, detail=upload_result["errors"])
+        
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="file_uploaded",
+            resource_type="file",
+            request=request,
+            resource_id=upload_result["file_key"],
+            details={
+                "filename": file.filename,
+                "file_size": upload_result["file_info"]["file_size"],
+                "file_type": upload_result["file_info"]["mime_type"]
+            }
+        )
+        
+        return {
+            "filename": file.filename,
+            "file_url": upload_result["file_url"],
+            "file_key": upload_result["file_key"],
+            "file_info": upload_result["file_info"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+# Enhanced template endpoints with user ownership
+@app.get("/api/templates")
+async def get_templates(current_user: Dict[str, Any] = Depends(get_current_active_user)):
+    """Get templates accessible to current user."""
+    try:
+        filter_query = get_user_templates_filter(current_user)
+        templates = list(templates_collection.find(filter_query, {"_id": 0}))
         return templates
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching templates: {str(e)}")
 
 @app.get("/api/templates/{template_id}")
-async def get_template(template_id: str):
-    """Get a specific template by ID"""
+async def get_template(
+    template_id: str, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
+):
+    """Get a specific template with access control."""
     try:
         template = templates_collection.find_one({"id": template_id}, {"_id": 0})
         if not template:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        # Check access permissions
+        if (template.get("user_id") != current_user["id"] and 
+            not template.get("is_public", False) and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
         return template
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching template: {str(e)}")
 
 @app.post("/api/templates")
-async def create_template(template: Template):
-    """Create a new template"""
+async def create_template(
+    template: Template, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Create a new template with user ownership."""
     try:
         template_id = str(uuid.uuid4())
+        
+        # Sanitize template data
+        template.name = sanitize_input(template.name)
+        
         template_data = {
             "id": template_id,
+            "user_id": current_user["id"],
             "name": template.name,
             "elements": [element.dict() for element in template.elements],
             "background": template.background,
             "dimensions": template.dimensions.dict(),
+            "is_public": template.is_public,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
         
         templates_collection.insert_one(template_data)
         
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="template_created",
+            resource_type="template",
+            request=request,
+            resource_id=template_id,
+            details={"name": template.name}
+        )
+        
         return {
             "id": template_id,
-            "message": "Template criado com sucesso",
+            "message": "Template created successfully",
             "api_endpoint": f"/api/generate/{template_id}"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating template: {str(e)}")
 
 @app.put("/api/templates/{template_id}")
-async def update_template(template_id: str, template: Template):
-    """Update an existing template"""
+async def update_template(
+    template_id: str, 
+    template: Template, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Update template with ownership validation."""
     try:
+        # Check if template exists and user has permission
+        existing_template = templates_collection.find_one({"id": template_id})
+        if not existing_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        if (existing_template.get("user_id") != current_user["id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Sanitize and update
+        template.name = sanitize_input(template.name)
+        
         template_data = {
             "name": template.name,
             "elements": [element.dict() for element in template.elements],
             "background": template.background,
             "dimensions": template.dimensions.dict(),
+            "is_public": template.is_public,
             "updated_at": datetime.utcnow()
         }
         
@@ -326,48 +429,58 @@ async def update_template(template_id: str, template: Template):
         )
         
         if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
+            raise HTTPException(status_code=404, detail="Template not found")
         
-        return {"message": "Template atualizado com sucesso"}
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="template_updated",
+            resource_type="template",
+            request=request,
+            resource_id=template_id
+        )
+        
+        return {"message": "Template updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar template: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating template: {str(e)}")
 
 @app.delete("/api/templates/{template_id}")
-async def delete_template(template_id: str):
-    """Delete a template"""
+async def delete_template(
+    template_id: str, 
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
+    request: Request = None
+):
+    """Delete template with ownership validation."""
     try:
+        # Check if template exists and user has permission
+        existing_template = templates_collection.find_one({"id": template_id})
+        if not existing_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        if (existing_template.get("user_id") != current_user["id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
         result = templates_collection.delete_one({"id": template_id})
         if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Template não encontrado")
+            raise HTTPException(status_code=404, detail="Template not found")
         
-        return {"message": "Template excluído com sucesso"}
+        # Log audit event
+        log_audit_event(
+            user_id=current_user["id"],
+            action="template_deleted",
+            resource_type="template",
+            request=request,
+            resource_id=template_id
+        )
+        
+        return {"message": "Template deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao excluir template: {str(e)}")
-
-# Image upload endpoint
-@app.post("/api/upload")
-async def upload_image(file: UploadFile = File(...)):
-    """Upload an image and return base64 encoded data"""
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="Arquivo deve ser uma imagem")
-        
-        # Read file content
-        content = await file.read()
-        
-        # Convert to base64
-        base64_data = base64.b64encode(content).decode('utf-8')
-        data_url = f"data:{file.content_type};base64,{base64_data}"
-        
-        return {
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": len(content),
-            "data_url": data_url
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao fazer upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting template: {str(e)}")
 
 @app.post("/api/generate/{template_id}")
 async def generate_invite(template_id: str, customizations: Dict[str, Any]):
