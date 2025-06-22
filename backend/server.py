@@ -94,20 +94,173 @@ class AuditLog(BaseModel):
     user_agent: str
     timestamp: datetime
 
+# Utility functions
+def log_audit_event(user_id: str, action: str, resource_type: str, request: Request, 
+                   resource_id: str = None, details: Dict[str, Any] = None):
+    """Log audit event for security monitoring."""
+    try:
+        audit_log = {
+            "user_id": user_id,
+            "action": action,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "details": details or {},
+            "ip_address": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("User-Agent", ""),
+            "timestamp": datetime.utcnow()
+        }
+        audit_logs_collection.insert_one(audit_log)
+    except Exception as e:
+        print(f"Failed to log audit event: {e}")
+
+def get_user_templates_filter(user: Dict[str, Any]) -> Dict[str, Any]:
+    """Get MongoDB filter for user's accessible templates."""
+    if user.get("role") == "admin":
+        return {}  # Admin can see all templates
+    else:
+        return {"$or": [{"user_id": user["id"]}, {"is_public": True}]}
+
+# Initialize admin user and cleanup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup."""
+    try:
+        init_admin_user()
+        cleanup_expired_sessions()
+        print("✅ Application initialized successfully")
+    except Exception as e:
+        print(f"❌ Startup error: {e}")
+
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Sistema de Convites Personalizados API", "version": "1.0.0"}
+    return {
+        "message": "Sistema de Convites Personalizados - Enterprise Edition",
+        "version": "2.0.0",
+        "features": ["JWT Authentication", "B2 Storage", "Rate Limiting", "Audit Logging"],
+        "security": "Enterprise Grade"
+    }
 
-# Health check
+# Health check with enhanced monitoring
 @app.get("/api/health")
-async def health_check():
+async def health_check(current_user: Dict[str, Any] = Depends(get_current_active_user)):
+    """Enhanced health check with user authentication."""
     try:
         # Test database connection
         db.list_collection_names()
-        return {"status": "healthy", "database": "connected"}
+        
+        # Test B2 storage
+        storage_status = "healthy" if storage_service else "unavailable"
+        
+        # Get basic stats for admins
+        stats = {}
+        if current_user.get("role") == "admin":
+            stats = {
+                "total_users": db.users.count_documents({}),
+                "total_templates": templates_collection.count_documents({}),
+                "total_generated": generated_collection.count_documents({}),
+                "storage_status": storage_status
+            }
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "storage": storage_status,
+            "timestamp": datetime.utcnow(),
+            "stats": stats
+        }
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+# Authentication endpoints
+@app.post("/api/auth/register", response_model=UserResponse)
+async def register(user_data: UserCreate, request: Request):
+    """Register a new user with comprehensive validation."""
+    try:
+        # Sanitize inputs
+        user_data.email = sanitize_input(user_data.email.lower())
+        user_data.full_name = sanitize_input(user_data.full_name)
+        
+        # Validate email format
+        if not validate_email(user_data.email):
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Create user
+        user = create_user(user_data)
+        
+        # Log audit event
+        log_audit_event(
+            user_id=user["id"],
+            action="user_registered",
+            resource_type="user",
+            request=request,
+            details={"email": user["email"]}
+        )
+        
+        return UserResponse(**user)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(user_credentials: UserLogin, request: Request):
+    """Authenticate user and return JWT token."""
+    try:
+        # Sanitize email
+        email = sanitize_input(user_credentials.email.lower())
+        
+        # Authenticate user
+        user = authenticate_user(email, user_credentials.password)
+        if not user:
+            # Log failed login
+            security_monitor.log_failed_login(
+                ip=request.client.host if request.client else "unknown",
+                email=email
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        # Create access token
+        token_data = {"sub": user["id"], "email": user["email"], "role": user["role"]}
+        access_token = create_access_token(token_data)
+        
+        # Create session
+        session_id = create_session(
+            user_id=user["id"],
+            token=access_token,
+            ip_address=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("User-Agent", "")
+        )
+        
+        # Log successful login
+        log_audit_event(
+            user_id=user["id"],
+            action="user_login",
+            resource_type="session",
+            request=request,
+            resource_id=session_id
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=JWT_EXPIRATION_HOURS * 3600,
+            user=UserResponse(**user)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_active_user)):
+    """Get current user information."""
+    return UserResponse(**current_user)
 
 # Template CRUD endpoints
 @app.get("/api/templates")
