@@ -547,23 +547,11 @@ const App = () => {
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Template salvo, resultado:', result); // Debug
-        
-        // Create complete template object for immediate display
-        const completeTemplate = {
-          id: result.id,
-          name: templateName,
-          elements: templateElements,
-          background: templateBackground,
-          dimensions: { width: canvasWidth, height: canvasHeight }
-        };
-        
-        console.log('Template completo criado:', completeTemplate); // Debug
-        console.log('Campos detectados:', getCustomizableFields(completeTemplate)); // Debug
-        
-        setCurrentTemplate(completeTemplate);
         alert(`Template salvo com sucesso! ID: ${result.id}`);
         loadTemplates();
+        setCurrentTemplate(result);
+        setIsFirstTimeCreated(true);
+        setIsEndpointExpanded(true); // Expand when first created
       } else {
         alert('Erro ao salvar template');
       }
