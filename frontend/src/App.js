@@ -1575,18 +1575,6 @@ const AppContent = () => {
                   </button>
                 )}
               </div>
-                {currentTemplate && (
-                  <button 
-                    className="btn-template btn-delete"
-                    onClick={deleteCurrentTemplate}
-                    disabled={isLoading}
-                    title="Excluir template atual permanentemente"
-                  >
-                    <span className="btn-icon">🗑️</span>
-                    <span className="btn-text">Excluir</span>
-                  </button>
-                )}
-              </div>
             </div>
             
             {currentTemplate && (
