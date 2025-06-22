@@ -916,12 +916,7 @@ const AppContent = () => {
       if (response.ok) {
         alert(`Template "${currentTemplate.name}" excluído com sucesso!`);
         // Reset to clean state
-        setCurrentTemplate(null);
-        setTemplateElements([]);
-        setTemplateBackground('#2d1b3d');
-        setTemplateName('Novo Convite');
-        setSelectedElement(null);
-        // Reload templates list
+        createNewTemplate();
         loadTemplates();
       } else {
         const errorData = await response.json();
@@ -931,6 +926,16 @@ const AppContent = () => {
       alert(`Erro ao excluir template: ${error.message}`);
     }
     setIsLoading(false);
+  };
+
+  const createNewTemplate = () => {
+    setCurrentTemplate(null);
+    setTemplateElements([]);
+    setTemplateBackground('#2d1b3d');
+    setTemplateName('Novo Convite');
+    setSelectedElement(null);
+    setIsFirstTimeCreated(false);
+    setIsEndpointExpanded(false);
   };
 
   const deleteTemplate = async (templateId, templateName) => {
