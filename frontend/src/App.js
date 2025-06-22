@@ -718,8 +718,8 @@ const App = () => {
             ✨
           </div>
           <div>
-            <h1>Editor de Convites</h1>
-            <div className="header-subtitle">Design Premium</div>
+            <h1>Canva de Convites</h1>
+            <div className="header-subtitle">Design para convites personalizados</div>
           </div>
         </div>
         
