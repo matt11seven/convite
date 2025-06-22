@@ -2232,9 +2232,9 @@ body {
   }
 }
 
-/* Elements Manager - New Clean Design */
-.elements-manager {
-  background: white;
+/* Elements Manager - New Clean Design - OVERRIDE GLOBAL STYLES */
+.properties-panel .elements-manager {
+  background: #ffffff !important;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   margin-bottom: 1.5rem;
@@ -2242,23 +2242,23 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.elements-header {
-  background: #10b981;
+.properties-panel .elements-header {
+  background: #10b981 !important;
   padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.elements-title {
-  color: white;
+.properties-panel .elements-title {
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 0.875rem;
 }
 
-.btn-clear-all {
+.properties-panel .btn-clear-all {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
   padding: 0.25rem 0.5rem;
@@ -2268,42 +2268,41 @@ body {
   transition: all 0.2s ease;
 }
 
-.btn-clear-all:hover {
+.properties-panel .btn-clear-all:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.elements-list {
+.properties-panel .elements-list {
   max-height: 240px;
   overflow-y: auto;
-  background: white;
+  background: #ffffff !important;
 }
 
-.empty-elements {
+.properties-panel .empty-elements {
   padding: 2rem;
   text-align: center;
-  color: #6b7280;
-  background: white;
+  background: #ffffff !important;
 }
 
-.empty-icon {
+.properties-panel .empty-icon {
   font-size: 2rem;
   display: block;
   margin-bottom: 0.5rem;
-  color: #9ca3af;
+  color: #9ca3af !important;
 }
 
-.empty-elements p {
+.properties-panel .empty-elements p {
   margin: 0.5rem 0;
   font-weight: 600;
-  color: #374151;
+  color: #374151 !important;
 }
 
-.empty-elements small {
+.properties-panel .empty-elements small {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #9ca3af !important;
 }
 
-.element-item {
+.properties-panel .element-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2311,25 +2310,25 @@ body {
   border-bottom: 1px solid #e5e7eb;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: #ffffff !important;
 }
 
-.element-item:hover {
-  background: #f9fafb;
+.properties-panel .element-item:hover {
+  background: #f9fafb !important;
   border-left: 3px solid #10b981;
 }
 
-.element-item.selected {
-  background: #f0fdf4;
+.properties-panel .element-item.selected {
+  background: #f0fdf4 !important;
   border-left: 3px solid #10b981;
   box-shadow: inset 0 0 0 1px #d1fae5;
 }
 
-.element-item:last-child {
+.properties-panel .element-item:last-child {
   border-bottom: none;
 }
 
-.element-info {
+.properties-panel .element-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -2337,39 +2336,40 @@ body {
   min-width: 0;
 }
 
-.element-icon {
+.properties-panel .element-icon {
   font-size: 1.1rem;
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: #f3f4f6 !important;
   border-radius: 6px;
   flex-shrink: 0;
+  color: #4b5563 !important;
 }
 
-.element-details {
+.properties-panel .element-details {
   flex: 1;
   min-width: 0;
 }
 
-.element-name {
+.properties-panel .element-name {
   font-weight: 600;
-  color: #1f2937;
+  color: #1f2937 !important;
   font-size: 0.875rem;
   margin-bottom: 0.125rem;
 }
 
-.element-preview {
+.properties-panel .element-preview {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6b7280 !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.element-actions {
+.properties-panel .element-actions {
   display: flex;
   gap: 0.25rem;
   flex-shrink: 0;
@@ -2377,11 +2377,11 @@ body {
   transition: opacity 0.2s ease;
 }
 
-.element-item:hover .element-actions {
+.properties-panel .element-item:hover .element-actions {
   opacity: 1;
 }
 
-.btn-action {
+.properties-panel .btn-action {
   width: 24px;
   height: 24px;
   border: none;
@@ -2392,43 +2392,47 @@ body {
   justify-content: center;
   font-size: 0.75rem;
   transition: all 0.2s ease;
-  color: white;
+  color: #ffffff !important;
 }
 
-.btn-duplicate {
-  background: #3b82f6;
+.properties-panel .btn-duplicate {
+  background: #3b82f6 !important;
 }
 
-.btn-duplicate:hover {
-  background: #2563eb;
+.properties-panel .btn-duplicate:hover {
+  background: #2563eb !important;
   transform: scale(1.1);
 }
 
-.btn-move-up, .btn-move-down {
-  background: #8b5cf6;
+.properties-panel .btn-move-up, 
+.properties-panel .btn-move-down {
+  background: #8b5cf6 !important;
 }
 
-.btn-move-up:hover, .btn-move-down:hover {
-  background: #7c3aed;
+.properties-panel .btn-move-up:hover, 
+.properties-panel .btn-move-down:hover {
+  background: #7c3aed !important;
   transform: scale(1.1);
 }
 
-.btn-move-up:disabled, .btn-move-down:disabled {
-  background: #d1d5db;
-  color: #9ca3af;
+.properties-panel .btn-move-up:disabled, 
+.properties-panel .btn-move-down:disabled {
+  background: #d1d5db !important;
+  color: #9ca3af !important;
   cursor: not-allowed;
 }
 
-.btn-move-up:disabled:hover, .btn-move-down:disabled:hover {
+.properties-panel .btn-move-up:disabled:hover, 
+.properties-panel .btn-move-down:disabled:hover {
   transform: none;
 }
 
-.btn-delete {
-  background: #ef4444;
+.properties-panel .btn-delete {
+  background: #ef4444 !important;
 }
 
-.btn-delete:hover {
-  background: #dc2626;
+.properties-panel .btn-delete:hover {
+  background: #dc2626 !important;
   transform: scale(1.1);
 }
 
