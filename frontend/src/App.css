@@ -1289,20 +1289,29 @@ body {
   position: relative;
 }
 
-.properties-header {
+/* Properties Header - OVERRIDE GLOBAL STYLES */
+.properties-panel .properties-header {
+  background: #f8f9fa !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--glass-border);
 }
 
-.properties-header h4 {
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 600;
-  background: var(--secondary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.properties-panel .editing-indicator {
+  color: #1f2937 !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Properties Panel Title Override */
+.properties-panel h3 {
+  color: #1f2937 !important;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
 }
 
 /* No Selection State */
