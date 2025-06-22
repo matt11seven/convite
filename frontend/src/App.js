@@ -1159,7 +1159,7 @@ const App = () => {
                   onClick={() => setIsEndpointExpanded(!isEndpointExpanded)}
                 >
                   <span className="endpoint-title">
-                    📋 Detalhes da API
+                    ✨ Detalhes da API Premium
                   </span>
                   <span className={`expand-icon ${isEndpointExpanded ? 'expanded' : ''}`}>
                     ▼
