@@ -585,6 +585,8 @@ const App = () => {
     setTemplateBackground('#2d1b3d');
     setTemplateName('Novo Convite');
     setSelectedElement(null);
+    setIsFirstTimeCreated(false);
+    setIsEndpointExpanded(false);
   };
 
   const deleteTemplate = async (templateId, templateName) => {
