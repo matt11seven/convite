@@ -1600,4 +1600,12 @@ ${templateElements.map((element, index) =>
   );
 };
 
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
 export default App;
