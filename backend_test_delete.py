@@ -77,19 +77,46 @@ def test_delete_template_auth():
     # Step 3: Create a template to delete
     print("\n3. Creating a template to delete...")
     headers = {"Authorization": f"Bearer {auth_token}"}
+    
+    # First, let's check if the template creation endpoint requires authentication
     response = requests.post(
         f"{API_BASE_URL}/templates",
-        json=TEST_TEMPLATE_DATA,
-        headers=headers
+        json=TEST_TEMPLATE_DATA
     )
     
-    if response.status_code != 200:
-        print(f"❌ Failed to create template: {response.text}")
-        return False
-    
-    template_data = response.json()
-    template_id = template_data["id"]
-    print(f"✅ Template created successfully with ID: {template_id}")
+    # If template creation doesn't require auth, we need to create a template that's owned by our user
+    if response.status_code == 200:
+        print("Note: Template creation doesn't require authentication")
+        template_id = response.json()["id"]
+        
+        # Create another template with authentication to ensure ownership
+        response = requests.post(
+            f"{API_BASE_URL}/templates",
+            json=TEST_TEMPLATE_DATA,
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            template_id = response.json()["id"]
+            print(f"✅ Template created successfully with ID: {template_id} (with authentication)")
+        else:
+            print(f"❌ Failed to create template with authentication: {response.text}")
+            return False
+    else:
+        # Template creation requires authentication
+        response = requests.post(
+            f"{API_BASE_URL}/templates",
+            json=TEST_TEMPLATE_DATA,
+            headers=headers
+        )
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to create template: {response.text}")
+            return False
+        
+        template_data = response.json()
+        template_id = template_data["id"]
+        print(f"✅ Template created successfully with ID: {template_id}")
     
     # Step 4: Try to delete template WITHOUT authentication
     print("\n4. Attempting to delete template WITHOUT authentication...")
