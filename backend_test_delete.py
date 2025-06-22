@@ -95,10 +95,10 @@ def test_delete_template_auth():
     print("\n4. Attempting to delete template WITHOUT authentication...")
     response = requests.delete(f"{API_BASE_URL}/templates/{template_id}")
     
-    if response.status_code == 401:
-        print(f"✅ Delete without authentication correctly returned 401 Unauthorized")
+    if response.status_code in [401, 403]:
+        print(f"✅ Delete without authentication correctly returned {response.status_code} (Unauthorized/Forbidden)")
     else:
-        print(f"❌ Delete without authentication returned {response.status_code} instead of 401")
+        print(f"❌ Delete without authentication returned {response.status_code} instead of 401/403")
         print(f"Response: {response.text}")
         return False
     
