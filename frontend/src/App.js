@@ -322,7 +322,8 @@ const AppContent = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/templates`);
+      const headers = getAuthHeaders();
+      const response = await fetch(`${backendUrl}/api/templates`, { headers });
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
