@@ -52,7 +52,20 @@ TEST_TEMPLATE_DATA = {
     "dimensions": {
         "width": 400,
         "height": 600
-    }
+    },
+    "is_public": False
+}
+
+# Test user data
+TEST_USER = {
+    "email": f"teste_{uuid.uuid4()}@convites.com",
+    "password": "senha123",
+    "full_name": "Usuário Teste"
+}
+
+TEST_ADMIN = {
+    "email": "admin@convites.com",
+    "password": "admin123"
 }
 
 # Create a test image
