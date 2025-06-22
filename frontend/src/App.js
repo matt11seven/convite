@@ -18,6 +18,13 @@ const App = () => {
   const canvasWidth = 400;
   const canvasHeight = 600;
 
+  // Drag and resize state
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeHandle, setResizeHandle] = useState(null);
+  const [lastClickPos, setLastClickPos] = useState({ x: canvasWidth / 2, y: canvasHeight / 2 });
+
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
   useEffect(() => {
