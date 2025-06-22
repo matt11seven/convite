@@ -15,44 +15,42 @@ from pprint import pprint
 BACKEND_URL = "https://a4db54da-b296-42be-9eb9-b8108a30fb67.preview.emergentagent.com"
 API_BASE_URL = f"{BACKEND_URL}/api"
 
-# Test data
-TEST_TEMPLATE_NAME = "Convite #EUVOU"
+# Test data - Updated to match the requested test template
+TEST_TEMPLATE_NAME = "Convite EUVOU"
 TEST_TEMPLATE_DATA = {
     "name": TEST_TEMPLATE_NAME,
     "elements": [
         {
             "type": "text",
-            "x": 100,
-            "y": 150,
             "content": "#EUVOU",
+            "x": 200,
+            "y": 150,
             "fontSize": 48,
-            "fontFamily": "Arial",
-            "color": "#FFFFFF",
-            "textAlign": "center"
-        },
-        {
-            "type": "text",
-            "x": 100,
-            "y": 250,
-            "content": "DOUTORES EXPERIENCE",
-            "fontSize": 24,
-            "fontFamily": "Arial",
-            "color": "#FFFFFF",
+            "color": "#ffffff",
             "textAlign": "center"
         },
         {
             "type": "image",
-            "x": 100,
-            "y": 350,
-            "width": 200,
-            "height": 200,
+            "x": 125,
+            "y": 250,
+            "width": 150,
+            "height": 150,
             "shape": "circle",
-            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+            "src": None
+        },
+        {
+            "type": "text",
+            "content": "DOUTORES EXPERIENCE",
+            "x": 200,
+            "y": 500,
+            "fontSize": 24,
+            "color": "#ff6b6b",
+            "textAlign": "center"
         }
     ],
-    "background": "#000000",
+    "background": "#2d1b3d",
     "dimensions": {
-        "width": 800,
+        "width": 400,
         "height": 600
     }
 }
