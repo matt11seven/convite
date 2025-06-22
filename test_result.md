@@ -213,7 +213,67 @@ backend:
         agent: "testing"
         comment: "A persistência dos convites gerados com imagens está funcionando corretamente. Verifiquei que o campo image_url está sendo salvo corretamente no banco de dados e que os convites podem ser recuperados com todas as informações, incluindo a URL da imagem."
 
-  - task: "Diferentes Cenários de Templates"
+  - task: "Sistema de Autenticação JWT"
+    implemented: true
+    working: true
+    file: "/app/backend/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Sistema de autenticação JWT implementado em auth.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Sistema de autenticação JWT está funcionando corretamente. Testei o registro de usuários, login e obtenção de informações do usuário autenticado. O sistema gera tokens JWT válidos, verifica corretamente as senhas e protege adequadamente os endpoints que requerem autenticação."
+
+  - task: "Endpoints Protegidos"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Endpoints protegidos implementados em server.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Endpoints protegidos estão funcionando corretamente. Verifiquei que o endpoint /api/health agora requer autenticação, assim como os endpoints de criação, atualização e exclusão de templates. Apenas usuários autenticados podem acessar esses endpoints, e apenas os donos dos templates (ou administradores) podem atualizar ou excluir templates."
+
+  - task: "Upload Seguro B2"
+    implemented: true
+    working: true
+    file: "/app/backend/b2_storage.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Upload seguro B2 implementado em b2_storage.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Upload seguro B2 está funcionando corretamente. Verifiquei que o endpoint /api/upload agora requer autenticação e que os arquivos são validados antes do upload. O sistema verifica o tamanho do arquivo, o tipo MIME e realiza outras validações de segurança."
+
+  - task: "Controle de Acesso"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Controle de acesso implementado em server.py. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Controle de acesso está funcionando corretamente. Verifiquei que templates públicos podem ser acessados por qualquer usuário autenticado, enquanto templates privados só podem ser acessados por seus donos ou por administradores. Apenas os donos dos templates (ou administradores) podem editar ou excluir templates."
+
+  - task: "Endpoints Admin"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -223,10 +283,10 @@ backend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Nova funcionalidade para testar: diferentes cenários de templates (texto simples, apenas imagem, múltiplos placeholders)."
+        comment: "Endpoints admin implementados em server.py. Precisa ser testado."
       - working: true
         agent: "testing"
-        comment: "Testei diferentes cenários de templates, incluindo templates com texto simples sem placeholders, templates apenas com imagem, e templates com múltiplos placeholders. Todos os cenários funcionaram conforme esperado, com a geração correta de convites personalizados e imagens."
+        comment: "Endpoints admin estão funcionando corretamente. Verifiquei que os endpoints /api/admin/users, /api/admin/stats e /api/admin/audit-logs estão protegidos e só podem ser acessados por usuários com papel de administrador. Usuários regulares não conseguem acessar esses endpoints."
 
 frontend:
   - task: "Frontend Implementation"
