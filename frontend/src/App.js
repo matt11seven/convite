@@ -1154,38 +1154,66 @@ const App = () => {
             />
             {currentTemplate && (
               <div className="template-info">
-                <div className="template-id">
-                  <strong>ID:</strong> {currentTemplate.id}
+                <div 
+                  className="endpoint-header"
+                  onClick={() => setIsEndpointExpanded(!isEndpointExpanded)}
+                >
+                  <span className="endpoint-title">
+                    📋 Detalhes da API
+                  </span>
+                  <span className={`expand-icon ${isEndpointExpanded ? 'expanded' : ''}`}>
+                    ▼
+                  </span>
                 </div>
-                <div className="template-endpoint">
-                  <strong>API:</strong> {backendUrl}/api/generate/{currentTemplate.id}
-                </div>
-                <div className="template-fields">
-                  <strong>Campos Personalizáveis:</strong>
-                  <div className="custom-fields">
-                    {getCustomizableFields(currentTemplate).length > 0 ? (
-                      getCustomizableFields(currentTemplate).map((field, index) => (
-                        <span key={index} className="field-tag">
-                          {field}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="no-fields">
-                        Nenhum campo personalizável detectado. 
-                        Use placeholders como {"{nome}"} no texto ou adicione imagens sem src.
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {getCustomizableFields(currentTemplate).length > 0 && (
-                  <div className="api-example">
-                    <strong>Exemplo de Requisição:</strong>
-                    <pre className="code-block">
-{`POST ${backendUrl}/api/generate/${currentTemplate.id}
-Content-Type: application/json
-
-${JSON.stringify(getExampleRequestBody(currentTemplate), null, 2)}`}
-                    </pre>
+                
+                {isEndpointExpanded && (
+                  <div className="endpoint-details">
+                    <div className="endpoint-item">
+                      <strong>Template ID:</strong>
+                      <code className="endpoint-code">{currentTemplate.id}</code>
+                      <button 
+                        className="copy-btn"
+                        onClick={() => navigator.clipboard.writeText(currentTemplate.id)}
+                      >
+                        📋
+                      </button>
+                    </div>
+                    
+                    <div className="endpoint-item">
+                      <strong>API Endpoint:</strong>
+                      <code className="endpoint-code">
+                        POST {backendUrl}/api/generate/{currentTemplate.id}
+                      </code>
+                      <button 
+                        className="copy-btn"
+                        onClick={() => navigator.clipboard.writeText(`${backendUrl}/api/generate/${currentTemplate.id}`)}
+                      >
+                        📋
+                      </button>
+                    </div>
+                    
+                    <div className="endpoint-item">
+                      <strong>Campos Personalizáveis:</strong>
+                      <div className="customizable-fields">
+                        {templateElements.map((element, index) => (
+                          <div key={index} className="field-item">
+                            <code>{element.type}_{index + 1}</code>
+                            <span className="field-type">({element.type === 'text' ? 'string' : 'image_url'})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="endpoint-item">
+                      <strong>Exemplo de Payload:</strong>
+                      <pre className="json-example">
+{`{
+${templateElements.map((element, index) => 
+  `  "${element.type}_${index + 1}": "${element.type === 'text' ? 'Novo texto' : 'https://example.com/image.jpg'}"`
+).join(',\n')}
+}`}
+                      </pre>
+                    </div>
                   </div>
                 )}
               </div>
