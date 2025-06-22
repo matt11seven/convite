@@ -960,9 +960,9 @@ const App = () => {
                 {/* Element Properties */}
                 {selectedElement !== null && templateElements[selectedElement] && (
                   <div className="element-properties">
-                    <div className="properties-header-compact">
+                    <div className="properties-header">
                       <span className="editing-indicator">
-                        ⚙️ {templateElements[selectedElement].type === 'text' ? 'Texto' : 'Imagem'} {selectedElement + 1}
+                        ✏️ Editando: {templateElements[selectedElement].type === 'text' ? 'Texto' : 'Imagem'} {selectedElement + 1}
                       </span>
                     </div>
                 
