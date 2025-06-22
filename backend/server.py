@@ -14,6 +14,10 @@ import io
 from PIL import Image
 
 # Import our security modules
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from auth import (
     create_user, authenticate_user, get_current_user, get_current_active_user, 
     require_admin, create_access_token, UserCreate, UserLogin, UserResponse, 
