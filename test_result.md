@@ -183,18 +183,66 @@ backend:
         agent: "testing"
         comment: "API de estatísticas está funcionando corretamente. Retorna informações sobre templates e convites gerados."
 
-frontend:
-  - task: "Frontend Implementation"
+  - task: "Template com Placeholders e Imagem"
     implemented: true
-    working: "NA"
-    file: "/app/frontend/src/App.js"
+    working: true
+    file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
+        comment: "Nova funcionalidade para testar: criação de templates com placeholders e geração de convites com imagens."
+      - working: true
+        agent: "testing"
+        comment: "Funcionalidade de templates com placeholders e geração de convites com imagens está funcionando corretamente. Testei a criação de templates com placeholders como '{nome}' e '{evento}', adicionei elementos de imagem sem src, e verifiquei a geração de convites com diferentes customizações. A API retorna corretamente a URL da imagem gerada, e o endpoint /api/images/{filename} serve as imagens geradas. A pasta /app/generated_images foi criada e contém as imagens geradas."
+
+  - task: "Persistência de Convites com Imagens"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Nova funcionalidade para testar: persistência de convites gerados com imagens."
+      - working: true
+        agent: "testing"
+        comment: "A persistência dos convites gerados com imagens está funcionando corretamente. Verifiquei que o campo image_url está sendo salvo corretamente no banco de dados e que os convites podem ser recuperados com todas as informações, incluindo a URL da imagem."
+
+  - task: "Diferentes Cenários de Templates"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Nova funcionalidade para testar: diferentes cenários de templates (texto simples, apenas imagem, múltiplos placeholders)."
+      - working: true
+        agent: "testing"
+        comment: "Testei diferentes cenários de templates, incluindo templates com texto simples sem placeholders, templates apenas com imagem, e templates com múltiplos placeholders. Todos os cenários funcionaram conforme esperado, com a geração correta de convites personalizados e imagens."
+
+frontend:
+  - task: "Frontend Implementation"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
         comment: "Frontend não será testado pelo testing agent, apenas o backend."
+      - working: false
+        agent: "testing"
+        comment: "Testando o editor de convites personalizados. Encontrei problemas com as funcionalidades de drag & drop e redimensionamento. Após análise do código, identifiquei potenciais problemas na implementação dessas funcionalidades. O drag & drop está implementado nas funções handleCanvasMouseMove, handleCanvasClick e handleCanvasMouseUp, mas parece haver problemas na detecção de elementos e no cálculo de posições. O redimensionamento também apresenta problemas, especialmente na detecção dos handles de redimensionamento e no cálculo das novas dimensões."
 
 metadata:
   created_by: "testing_agent"
@@ -204,8 +252,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Generate Personalized Invites"
-  stuck_tasks: []
+    - "Template com Placeholders e Imagem"
+    - "Persistência de Convites com Imagens"
+    - "Diferentes Cenários de Templates"
+  stuck_tasks: 
+    - "Frontend Implementation"
   test_all: false
   test_priority: "high_first"
 
@@ -216,3 +267,7 @@ agent_communication:
     message: "Testes concluídos. A maioria das APIs está funcionando corretamente, mas há um problema com a geração de convites personalizados. O erro parece estar relacionado à dependência PIL (Pillow) que não está sendo carregada corretamente no ambiente do servidor. Tentei instalar a biblioteca de várias formas, mas o problema persiste. Recomendo verificar a instalação da biblioteca Pillow no ambiente do servidor e garantir que ela esteja disponível para o aplicativo FastAPI."
   - agent: "testing"
     message: "Realizei novos testes focados na funcionalidade de geração de convites personalizados. Boas notícias! A API de geração de convites está funcionando corretamente agora. Consegui criar um template '#EUVOU' e gerar um convite personalizado com sucesso. Todas as APIs do backend estão funcionando conforme esperado."
+  - agent: "testing"
+    message: "Testei o editor de convites personalizados no frontend, focando nas funcionalidades de drag & drop e redimensionamento. Encontrei problemas em ambas as funcionalidades. Após análise do código, identifiquei que os problemas estão relacionados à implementação das funções handleCanvasMouseMove, handleCanvasClick e handleCanvasMouseUp. Especificamente, há problemas na detecção de elementos, no cálculo de posições e na detecção dos handles de redimensionamento. Recomendo revisar essas funções para corrigir os problemas."
+  - agent: "testing"
+    message: "Realizei testes específicos para as novas funcionalidades do sistema de convites, focando na criação de templates com placeholders e na geração de convites com imagens. Todos os testes foram bem-sucedidos. Criei templates com placeholders como '{nome}' e '{evento}', adicionei elementos de imagem sem src, e testei a geração de convites com diferentes customizações. A API retorna corretamente a URL da imagem gerada no formato '/api/images/{filename}', e o endpoint /api/images/{filename} serve as imagens geradas corretamente. Também verifiquei que a pasta /app/generated_images foi criada e contém as imagens geradas. Testei diferentes cenários, incluindo templates com texto simples, apenas imagem, e múltiplos placeholders, e todos funcionaram conforme esperado. A persistência dos convites gerados também foi verificada, confirmando que o campo image_url está sendo salvo corretamente no banco de dados."

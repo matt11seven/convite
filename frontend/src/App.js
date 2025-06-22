@@ -8,6 +8,8 @@ const App = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
+  const [showElementsList, setShowElementsList] = useState(true);
+  const [templateInfoExpanded, setTemplateInfoExpanded] = useState(true);
   
   // Template structure
   const [templateElements, setTemplateElements] = useState([]);
@@ -72,42 +74,79 @@ const App = () => {
     templateElements.forEach((element, index) => {
       if (element.type === 'text') {
         ctx.fillStyle = element.color || '#ffffff';
-        ctx.font = `${element.fontSize || 24}px ${element.fontFamily || 'Arial'}`;
-        ctx.textAlign = element.textAlign || 'center';
-        ctx.fillText(element.content, element.x, element.y);
         
-        // Draw selection border if selected
+        // Build font string with weight and style
+        let fontString = '';
+        if (element.fontStyle === 'italic') fontString += 'italic ';
+        if (element.fontWeight === 'bold') fontString += 'bold ';
+        fontString += `${element.fontSize || 24}px ${element.fontFamily || 'Arial'}`;
+        
+        ctx.font = fontString;
+        ctx.textAlign = element.textAlign || 'left';
+        
+        // Draw text
+        const lines = element.content.split('\n');
+        lines.forEach((line, lineIndex) => {
+          ctx.fillText(line, element.x, element.y + (lineIndex * (element.fontSize || 24)));
+        });
+        
+        // Calculate text bounds for selection
+        const metrics = ctx.measureText(element.content);
+        const textWidth = Math.max(metrics.width, 50); // Minimum width for easier selection
+        const textHeight = (element.fontSize || 24) * lines.length;
+        
+        // Store bounds for hit detection
+        element._bounds = {
+          x: element.x - 5,
+          y: element.y - (element.fontSize || 24) - 5,
+          width: textWidth + 10,
+          height: textHeight + 10
+        };
+        
+        // Draw selection border and handles if selected
         if (selectedElement === index) {
-          ctx.strokeStyle = '#00ff00';
+          ctx.strokeStyle = '#10B981';
           ctx.lineWidth = 2;
-          const metrics = ctx.measureText(element.content);
-          ctx.strokeRect(element.x - metrics.width/2 - 5, element.y - (element.fontSize || 24) - 5, 
-                        metrics.width + 10, (element.fontSize || 24) + 10);
+          ctx.strokeRect(element._bounds.x, element._bounds.y, element._bounds.width, element._bounds.height);
+          
+          // Resize handles
+          drawResizeHandles(ctx, element._bounds.x, element._bounds.y, element._bounds.width, element._bounds.height);
         }
       } else if (element.type === 'image') {
+        // Store bounds for hit detection
+        element._bounds = {
+          x: element.x,
+          y: element.y,
+          width: element.width,
+          height: element.height
+        };
+        
         if (element.src) {
           const img = new Image();
           img.onload = () => {
             ctx.save();
             if (element.shape === 'circle') {
               ctx.beginPath();
-              ctx.arc(element.x + element.width/2, element.y + element.height/2, element.width/2, 0, 2 * Math.PI);
+              ctx.arc(element.x + element.width/2, element.y + element.height/2, 
+                     Math.min(element.width, element.height)/2, 0, 2 * Math.PI);
               ctx.clip();
             }
             ctx.drawImage(img, element.x, element.y, element.width, element.height);
             ctx.restore();
             
-            // Draw selection border if selected
+            // Draw selection border and handles if selected
             if (selectedElement === index) {
-              ctx.strokeStyle = '#00ff00';
+              ctx.strokeStyle = '#10B981';
               ctx.lineWidth = 2;
               if (element.shape === 'circle') {
                 ctx.beginPath();
-                ctx.arc(element.x + element.width/2, element.y + element.height/2, element.width/2 + 2, 0, 2 * Math.PI);
+                ctx.arc(element.x + element.width/2, element.y + element.height/2, 
+                       Math.min(element.width, element.height)/2 + 2, 0, 2 * Math.PI);
                 ctx.stroke();
               } else {
                 ctx.strokeRect(element.x - 2, element.y - 2, element.width + 4, element.height + 4);
               }
+              drawResizeHandles(ctx, element.x, element.y, element.width, element.height);
             }
           };
           img.src = element.src;
@@ -116,7 +155,8 @@ const App = () => {
           ctx.fillStyle = element.shape === 'circle' ? '#ffffff' : '#cccccc';
           if (element.shape === 'circle') {
             ctx.beginPath();
-            ctx.arc(element.x + element.width/2, element.y + element.height/2, element.width/2, 0, 2 * Math.PI);
+            ctx.arc(element.x + element.width/2, element.y + element.height/2, 
+                   Math.min(element.width, element.height)/2, 0, 2 * Math.PI);
             ctx.fill();
           } else {
             ctx.fillRect(element.x, element.y, element.width, element.height);
@@ -126,72 +166,295 @@ const App = () => {
           ctx.fillStyle = '#666666';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText('Clique para adicionar imagem', element.x + element.width/2, element.y + element.height/2);
+          ctx.fillText('Clique para adicionar imagem', 
+                      element.x + element.width/2, element.y + element.height/2);
           
-          // Selection border
+          // Selection border and handles
           if (selectedElement === index) {
-            ctx.strokeStyle = '#00ff00';
+            ctx.strokeStyle = '#10B981';
             ctx.lineWidth = 2;
             if (element.shape === 'circle') {
               ctx.beginPath();
-              ctx.arc(element.x + element.width/2, element.y + element.height/2, element.width/2 + 2, 0, 2 * Math.PI);
+              ctx.arc(element.x + element.width/2, element.y + element.height/2, 
+                     Math.min(element.width, element.height)/2 + 2, 0, 2 * Math.PI);
               ctx.stroke();
             } else {
               ctx.strokeRect(element.x - 2, element.y - 2, element.width + 4, element.height + 4);
             }
+            drawResizeHandles(ctx, element.x, element.y, element.width, element.height);
           }
         }
       }
     });
   };
 
+  const drawResizeHandles = (ctx, x, y, width, height) => {
+    const handleSize = 10;
+    ctx.fillStyle = '#10B981';
+    ctx.strokeStyle = '#059669';
+    ctx.lineWidth = 2;
+    
+    // Corner and side handles
+    const handles = [
+      { x: x - handleSize/2, y: y - handleSize/2 }, // top-left
+      { x: x + width - handleSize/2, y: y - handleSize/2 }, // top-right
+      { x: x - handleSize/2, y: y + height - handleSize/2 }, // bottom-left
+      { x: x + width - handleSize/2, y: y + height - handleSize/2 }, // bottom-right
+      { x: x + width/2 - handleSize/2, y: y - handleSize/2 }, // top-center
+      { x: x + width/2 - handleSize/2, y: y + height - handleSize/2 }, // bottom-center
+      { x: x - handleSize/2, y: y + height/2 - handleSize/2 }, // left-center
+      { x: x + width - handleSize/2, y: y + height/2 - handleSize/2 }, // right-center
+    ];
+    
+    handles.forEach(handle => {
+      ctx.fillRect(handle.x, handle.y, handleSize, handleSize);
+      ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
+    });
+  };
+
+  const getResizeHandle = (x, y, element) => {
+    if (!element._bounds) return null;
+    
+    const handleSize = 10;
+    const bounds = element._bounds;
+    
+    const handles = [
+      { name: 'nw', x: bounds.x - handleSize/2, y: bounds.y - handleSize/2 },
+      { name: 'ne', x: bounds.x + bounds.width - handleSize/2, y: bounds.y - handleSize/2 },
+      { name: 'sw', x: bounds.x - handleSize/2, y: bounds.y + bounds.height - handleSize/2 },
+      { name: 'se', x: bounds.x + bounds.width - handleSize/2, y: bounds.y + bounds.height - handleSize/2 },
+      { name: 'n', x: bounds.x + bounds.width/2 - handleSize/2, y: bounds.y - handleSize/2 },
+      { name: 's', x: bounds.x + bounds.width/2 - handleSize/2, y: bounds.y + bounds.height - handleSize/2 },
+      { name: 'w', x: bounds.x - handleSize/2, y: bounds.y + bounds.height/2 - handleSize/2 },
+      { name: 'e', x: bounds.x + bounds.width - handleSize/2, y: bounds.y + bounds.height/2 - handleSize/2 },
+    ];
+    
+    for (let handle of handles) {
+      if (x >= handle.x && x <= handle.x + handleSize && 
+          y >= handle.y && y <= handle.y + handleSize) {
+        console.log('Handle detected:', handle.name); // Debug log
+        return handle.name;
+      }
+    }
+    return null;
+  };
+
+  const isPointInElement = (x, y, element) => {
+    if (!element._bounds) return false;
+    
+    if (element.type === 'image' && element.shape === 'circle') {
+      // Check if point is inside circle
+      const centerX = element.x + element.width/2;
+      const centerY = element.y + element.height/2;
+      const radius = Math.min(element.width, element.height)/2;
+      const distance = Math.sqrt((x - centerX)**2 + (y - centerY)**2);
+      return distance <= radius;
+    } else {
+      // Check if point is inside rectangle bounds
+      return x >= element._bounds.x && x <= element._bounds.x + element._bounds.width &&
+             y >= element._bounds.y && y <= element._bounds.y + element._bounds.height;
+    }
+  };
+
   const handleCanvasClick = (e) => {
+    // This function now only handles selection, drag starts on mousedown
+    // This prevents the element from getting "stuck" selected
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!isDragging && !isResizing) return;
+    
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Check if clicked on an element
-    let clickedElement = -1;
-    templateElements.forEach((element, index) => {
+    if (isDragging && selectedElement !== null) {
+      // Drag element
+      const updated = [...templateElements];
+      const element = updated[selectedElement];
+      
+      const newX = Math.max(0, Math.min(canvasWidth - (element.width || 100), x - dragStart.x));
+      const newY = Math.max(0, Math.min(canvasHeight - (element.height || 50), y - dragStart.y));
+      
+      updated[selectedElement] = {
+        ...element,
+        x: newX,
+        y: newY
+      };
+      setTemplateElements(updated);
+      
+    } else if (isResizing && selectedElement !== null && resizeHandle) {
+      // Resize element
+      const updated = [...templateElements];
+      const element = updated[selectedElement];
+      const initialDragPos = dragStart;
+      const deltaX = x - initialDragPos.x;
+      const deltaY = y - initialDragPos.y;
+      
       if (element.type === 'text') {
-        const ctx = canvas.getContext('2d');
-        ctx.font = `${element.fontSize || 24}px ${element.fontFamily || 'Arial'}`;
-        const metrics = ctx.measureText(element.content);
-        if (x >= element.x - metrics.width/2 && x <= element.x + metrics.width/2 &&
-            y >= element.y - (element.fontSize || 24) && y <= element.y) {
-          clickedElement = index;
+        // For text, adjust font size based on handle direction
+        let sizeMultiplier = 1;
+        
+        if (resizeHandle.includes('e') || resizeHandle.includes('se') || resizeHandle.includes('ne')) {
+          sizeMultiplier = 1 + (deltaX / 100); // Right side handles increase with right movement
+        } else if (resizeHandle.includes('w') || resizeHandle.includes('sw') || resizeHandle.includes('nw')) {
+          sizeMultiplier = 1 - (deltaX / 100); // Left side handles decrease with right movement
         }
+        
+        if (resizeHandle.includes('s') || resizeHandle.includes('se') || resizeHandle.includes('sw')) {
+          sizeMultiplier *= 1 + (deltaY / 100); // Bottom handles increase with down movement
+        } else if (resizeHandle.includes('n') || resizeHandle.includes('ne') || resizeHandle.includes('nw')) {
+          sizeMultiplier *= 1 - (deltaY / 100); // Top handles decrease with down movement
+        }
+        
+        const originalSize = element.fontSize || 24;
+        const newSize = Math.max(8, Math.min(120, originalSize * sizeMultiplier));
+        element.fontSize = Math.round(newSize);
+        
       } else if (element.type === 'image') {
+        // Store original dimensions for reference
+        const originalWidth = element.width;
+        const originalHeight = element.height;
+        const originalX = element.x;
+        const originalY = element.y;
+        
+        let newWidth = originalWidth;
+        let newHeight = originalHeight;
+        let newX = originalX;
+        let newY = originalY;
+        
+        // Calculate new dimensions based on handle
+        switch (resizeHandle) {
+          case 'se': // bottom-right
+            newWidth = Math.max(20, originalWidth + deltaX);
+            newHeight = Math.max(20, originalHeight + deltaY);
+            break;
+          case 'sw': // bottom-left
+            newWidth = Math.max(20, originalWidth - deltaX);
+            newHeight = Math.max(20, originalHeight + deltaY);
+            if (newWidth >= 20) newX = originalX + deltaX;
+            break;
+          case 'ne': // top-right
+            newWidth = Math.max(20, originalWidth + deltaX);
+            newHeight = Math.max(20, originalHeight - deltaY);
+            if (newHeight >= 20) newY = originalY + deltaY;
+            break;
+          case 'nw': // top-left
+            newWidth = Math.max(20, originalWidth - deltaX);
+            newHeight = Math.max(20, originalHeight - deltaY);
+            if (newWidth >= 20) newX = originalX + deltaX;
+            if (newHeight >= 20) newY = originalY + deltaY;
+            break;
+          case 'e': // right
+            newWidth = Math.max(20, originalWidth + deltaX);
+            break;
+          case 'w': // left
+            newWidth = Math.max(20, originalWidth - deltaX);
+            if (newWidth >= 20) newX = originalX + deltaX;
+            break;
+          case 's': // bottom
+            newHeight = Math.max(20, originalHeight + deltaY);
+            break;
+          case 'n': // top
+            newHeight = Math.max(20, originalHeight - deltaY);
+            if (newHeight >= 20) newY = originalY + deltaY;
+            break;
+        }
+        
+        // Keep circle shape square
         if (element.shape === 'circle') {
-          const centerX = element.x + element.width/2;
-          const centerY = element.y + element.height/2;
-          const distance = Math.sqrt((x - centerX)**2 + (y - centerY)**2);
-          if (distance <= element.width/2) {
-            clickedElement = index;
-          }
-        } else {
-          if (x >= element.x && x <= element.x + element.width &&
-              y >= element.y && y <= element.y + element.height) {
-            clickedElement = index;
-          }
+          const size = Math.min(newWidth, newHeight);
+          newWidth = size;
+          newHeight = size;
+        }
+        
+        // Ensure element stays within canvas bounds
+        newX = Math.max(0, Math.min(canvasWidth - newWidth, newX));
+        newY = Math.max(0, Math.min(canvasHeight - newHeight, newY));
+        
+        element.x = newX;
+        element.y = newY;
+        element.width = newWidth;
+        element.height = newHeight;
+      }
+      
+      setTemplateElements(updated);
+    }
+  };
+
+  const handleCanvasMouseUp = (e) => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
+  };
+
+  const handleCanvasMouseDown = (e) => {
+    e.preventDefault();
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Store last click position for new elements
+    setLastClickPos({ x, y });
+    
+    // Check if clicked on an element (in reverse order for top-to-bottom selection)
+    let clickedElement = -1;
+    let handle = null;
+    
+    for (let i = templateElements.length - 1; i >= 0; i--) {
+      const element = templateElements[i];
+      
+      // Check if clicked on resize handle first (only for selected element)
+      if (selectedElement === i) {
+        handle = getResizeHandle(x, y, element);
+        if (handle) {
+          clickedElement = i;
+          setResizeHandle(handle);
+          setIsResizing(true);
+          setDragStart({ x, y });
+          return; // Exit early for resize
         }
       }
-    });
+      
+      // Check if clicked on element
+      if (isPointInElement(x, y, element)) {
+        clickedElement = i;
+        break;
+      }
+    }
     
-    setSelectedElement(clickedElement >= 0 ? clickedElement : null);
+    if (clickedElement >= 0) {
+      // Start dragging
+      setSelectedElement(clickedElement);
+      setIsDragging(true);
+      const element = templateElements[clickedElement];
+      setDragStart({ 
+        x: x - element.x, 
+        y: y - element.y 
+      });
+    } else {
+      // Clicked on empty space - deselect
+      setSelectedElement(null);
+      setIsDragging(false);
+      setIsResizing(false);
+    }
   };
 
   const addTextElement = () => {
     const newElement = {
       type: 'text',
       content: 'Novo Texto',
-      x: canvasWidth / 2,
-      y: canvasHeight / 2,
+      x: lastClickPos.x,
+      y: lastClickPos.y,
       fontSize: 24,
       fontFamily: 'Arial',
       color: '#ffffff',
-      textAlign: 'center'
+      textAlign: 'left',
+      fontWeight: 'normal',
+      fontStyle: 'normal'
     };
     setTemplateElements([...templateElements, newElement]);
     setSelectedElement(templateElements.length);
@@ -200,8 +463,8 @@ const App = () => {
   const addImageElement = () => {
     const newElement = {
       type: 'image',
-      x: canvasWidth / 2 - 50,
-      y: canvasHeight / 2 - 50,
+      x: lastClickPos.x - 50,
+      y: lastClickPos.y - 50,
       width: 100,
       height: 100,
       shape: 'rectangle',
@@ -214,8 +477,8 @@ const App = () => {
   const addCircleImageElement = () => {
     const newElement = {
       type: 'image',
-      x: canvasWidth / 2 - 75,
-      y: canvasHeight / 2 - 75,
+      x: lastClickPos.x - 75,
+      y: lastClickPos.y - 75,
       width: 150,
       height: 150,
       shape: 'circle',
@@ -280,9 +543,23 @@ const App = () => {
       
       if (response.ok) {
         const result = await response.json();
+        console.log('Template salvo, resultado:', result); // Debug
+        
+        // Create complete template object for immediate display
+        const completeTemplate = {
+          id: result.id,
+          name: templateName,
+          elements: templateElements,
+          background: templateBackground,
+          dimensions: { width: canvasWidth, height: canvasHeight }
+        };
+        
+        console.log('Template completo criado:', completeTemplate); // Debug
+        console.log('Campos detectados:', getCustomizableFields(completeTemplate)); // Debug
+        
+        setCurrentTemplate(completeTemplate);
         alert(`Template salvo com sucesso! ID: ${result.id}`);
         loadTemplates();
-        setCurrentTemplate(result);
       } else {
         alert('Erro ao salvar template');
       }
@@ -316,6 +593,43 @@ const App = () => {
     setSelectedElement(null);
   };
 
+  const deleteTemplate = async (templateId, templateName) => {
+    console.log('deleteTemplate chamado:', { templateId, templateName }); // Debug
+    
+    if (!window.confirm(`Tem certeza que deseja excluir o template "${templateName}"?\n\nEsta ação não pode ser desfeita.`)) {
+      console.log('Exclusão cancelada pelo usuário'); // Debug
+      return;
+    }
+    
+    console.log('Iniciando exclusão...'); // Debug
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/templates/${templateId}`, {
+        method: 'DELETE',
+      });
+      
+      console.log('Resposta do delete:', response.status); // Debug
+      
+      if (response.ok) {
+        alert('Template excluído com sucesso!');
+        // If the deleted template was the current one, clear it
+        if (currentTemplate && currentTemplate.id === templateId) {
+          setCurrentTemplate(null);
+          createNewTemplate();
+        }
+        loadTemplates();
+      } else {
+        const errorData = await response.json();
+        console.error('Erro na resposta:', errorData); // Debug
+        alert(`Erro ao excluir template: ${errorData.detail || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error); // Debug
+      alert('Erro ao excluir template: ' + error.message);
+    }
+    setIsLoading(false);
+  };
+
   const deleteElement = () => {
     if (selectedElement !== null) {
       const updated = templateElements.filter((_, index) => index !== selectedElement);
@@ -324,23 +638,119 @@ const App = () => {
     }
   };
 
+  const getCustomizableFields = (template) => {
+    // Use current template elements if template is not provided
+    const elements = template ? template.elements : templateElements;
+    if (!elements || elements.length === 0) return [];
+    
+    const fields = new Set();
+    elements.forEach((element, index) => {
+      if (element.type === 'text' && element.content) {
+        // Look for placeholder patterns like {nome}, {evento}, etc.
+        const matches = element.content.match(/\{([^}]+)\}/g);
+        if (matches) {
+          matches.forEach(match => {
+            fields.add(match.slice(1, -1));
+          });
+        }
+        
+        // Also add common text identifiers
+        const content = element.content.toLowerCase();
+        if (content.includes('nome') || content.includes('name')) {
+          fields.add('nome');
+        } else if (content.includes('evento') || content.includes('event')) {
+          fields.add('evento');
+        } else if (content.includes('data') || content.includes('date')) {
+          fields.add('data');
+        } else if (content.includes('local') || content.includes('location')) {
+          fields.add('local');
+        } else {
+          // For any text element without specific keywords, create a generic field
+          fields.add(`texto_${index + 1}`);
+        }
+      }
+      
+      // Only add 'imagem' if there's actually an image element without src
+      if (element.type === 'image') {
+        if (!element.src) {
+          fields.add(`imagem_${index + 1}`);
+        } else {
+          // Even if it has src, allow replacement
+          fields.add(`imagem_${index + 1}`);
+        }
+      }
+    });
+    
+    // Don't add default fields - only show actual customizable fields
+    return Array.from(fields);
+  };
+
+  const getExampleRequestBody = (template) => {
+    const fields = getCustomizableFields(template);
+    if (fields.length === 0) return {};
+    
+    const exampleBody = {};
+    
+    fields.forEach(field => {
+      if (field.startsWith('imagem_')) {
+        exampleBody[field] = 'https://example.com/path/to/image.jpg';
+      } else if (field.startsWith('texto_')) {
+        exampleBody[field] = 'Texto personalizado';
+      } else if (field === 'nome') {
+        exampleBody[field] = 'João Silva';
+      } else if (field === 'evento') {
+        exampleBody[field] = 'Casamento';
+      } else if (field === 'data') {
+        exampleBody[field] = '25/12/2024';
+      } else if (field === 'local') {
+        exampleBody[field] = 'Igreja São José';
+      } else {
+        exampleBody[field] = `Exemplo ${field}`;
+      }
+    });
+    
+    return exampleBody;
+  };
+
+
+
   return (
     <div className="app">
       <div className="header">
-        <h1>Editor de Convites Personalizados</h1>
+        <div className="header-brand">
+          <div className="header-logo">
+            ✨
+          </div>
+          <div>
+            <h1>Editor de Convites</h1>
+            <div className="header-subtitle">Design Premium</div>
+          </div>
+        </div>
+        
+        <div className="header-stats">
+          <div className="stat-item">
+            <span className="stat-number">{templates.length}</span>
+            <span className="stat-label">Templates</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-number">∞</span>
+            <span className="stat-label">Possibilidades</span>
+          </div>
+        </div>
+
         <div className="header-actions">
           <button 
-            className="btn btn-primary"
+            className="btn btn-primary btn-medium"
             onClick={createNewTemplate}
           >
-            Novo Template
+            ✨ Novo Template
           </button>
           <button 
-            className="btn btn-success"
+            className="btn btn-success btn-medium"
             onClick={saveTemplate}
             disabled={isLoading}
           >
-            {isLoading ? 'Salvando...' : 'Salvar Template'}
+            {isLoading ? '💾 Salvando...' : '💾 Salvar Template'}
           </button>
         </div>
       </div>
@@ -377,13 +787,45 @@ const App = () => {
                     <div 
                       key={template.id} 
                       className="template-card"
-                      onClick={() => loadTemplate(template.id)}
                     >
-                      <div className="template-preview">
-                        <span>{template.name}</span>
+                      <div className="template-card-content">
+                        <div 
+                          className="template-preview"
+                          onClick={() => loadTemplate(template.id)}
+                        >
+                          <span>{template.name}</span>
+                        </div>
+                        <div className="template-actions">
+                          <button 
+                            className="btn-icon btn-edit"
+                            onClick={() => loadTemplate(template.id)}
+                            title="Editar template"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="btn-icon btn-delete"
+                            onClick={(e) => {
+                              console.log('Botão de delete clicado', { templateId: template.id, templateName: template.name }); // Debug
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteTemplate(template.id, template.name);
+                            }}
+                            title="Excluir template"
+                            disabled={isLoading}
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
+                  {templates.length === 0 && (
+                    <div className="no-templates">
+                      <p>Nenhum template criado ainda.</p>
+                      <p>Crie seu primeiro template usando o editor!</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -426,63 +868,280 @@ const App = () => {
               </div>
             )}
 
-            {activeTab === 'properties' && selectedElement !== null && (
+            {activeTab === 'properties' && (
               <div className="properties-panel">
                 <h3>Propriedades do Elemento</h3>
                 
-                {templateElements[selectedElement]?.type === 'text' && (
-                  <div className="property-group">
-                    <label>Texto:</label>
-                    <input 
-                      type="text"
-                      value={templateElements[selectedElement].content}
-                      onChange={(e) => updateSelectedElement('content', e.target.value)}
-                    />
-                    
-                    <label>Tamanho da Fonte:</label>
-                    <input 
-                      type="number"
-                      value={templateElements[selectedElement].fontSize || 24}
-                      onChange={(e) => updateSelectedElement('fontSize', parseInt(e.target.value))}
-                    />
-                    
-                    <label>Cor:</label>
-                    <input 
-                      type="color"
-                      value={templateElements[selectedElement].color || '#ffffff'}
-                      onChange={(e) => updateSelectedElement('color', e.target.value)}
-                    />
+                {/* Elements List - Compact Dropdown */}
+                <div className="elements-list-container">
+                  <div 
+                    className="elements-list-header"
+                    onClick={() => setShowElementsList(!showElementsList)}
+                  >
+                    <span className="elements-count">
+                      📋 {templateElements.length} elemento{templateElements.length !== 1 ? 's' : ''}
+                    </span>
+                    <div className="header-actions">
+                      {templateElements.length > 0 && (
+                        <button 
+                          className="btn-clear-mini"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Remover todos os elementos?')) {
+                              setTemplateElements([]);
+                              setSelectedElement(null);
+                            }
+                          }}
+                          title="Limpar todos"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                      <span className={`dropdown-arrow ${showElementsList ? 'expanded' : ''}`}>
+                        ▼
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {showElementsList && (
+                    <div className="elements-dropdown">
+                      {templateElements.length === 0 ? (
+                        <div className="no-elements-compact">
+                          Use a aba "Elementos" para adicionar
+                        </div>
+                      ) : (
+                        templateElements.map((element, index) => (
+                          <div 
+                            key={index}
+                            className={`element-item-compact ${selectedElement === index ? 'selected' : ''}`}
+                            onClick={() => setSelectedElement(index)}
+                          >
+                            <span className="element-icon-small">
+                              {element.type === 'text' ? '📝' : '🖼️'}
+                            </span>
+                            <div className="element-info-compact">
+                              <span className="element-name-compact">
+                                {element.type === 'text' ? 'Texto' : 'Imagem'} {index + 1}
+                              </span>
+                              <span className="element-preview-compact">
+                                {element.type === 'text' 
+                                  ? (element.content || 'Vazio').substring(0, 20) + (element.content && element.content.length > 20 ? '...' : '')
+                                  : element.src ? 'Com imagem' : 'Placeholder'
+                                }
+                              </span>
+                            </div>
+                            <div className="element-actions-compact">
+                              <button 
+                                className="btn-micro"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const duplicated = { ...element };
+                                  duplicated.x += 10;
+                                  duplicated.y += 10;
+                                  const updated = [...templateElements];
+                                  updated.splice(index + 1, 0, duplicated);
+                                  setTemplateElements(updated);
+                                  setSelectedElement(index + 1);
+                                }}
+                                title="Duplicar"
+                              >
+                                📋
+                              </button>
+                              <button 
+                                className="btn-micro btn-delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Remover elemento?')) {
+                                    const updated = templateElements.filter((_, i) => i !== index);
+                                    setTemplateElements(updated);
+                                    setSelectedElement(selectedElement === index ? null : 
+                                      selectedElement > index ? selectedElement - 1 : selectedElement);
+                                  }
+                                }}
+                                title="Remover"
+                              >
+                                ❌
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Element Properties */}
+                {selectedElement !== null && templateElements[selectedElement] && (
+                  <div className="element-properties">
+                    <div className="properties-header-compact">
+                      <span className="editing-indicator">
+                        ⚙️ {templateElements[selectedElement].type === 'text' ? 'Texto' : 'Imagem'} {selectedElement + 1}
+                      </span>
+                    </div>
+                
+                    {templateElements[selectedElement]?.type === 'text' && (
+                      <div className="property-group">
+                        <label>Texto:</label>
+                        <textarea 
+                          value={templateElements[selectedElement].content}
+                          onChange={(e) => updateSelectedElement('content', e.target.value)}
+                          rows="2"
+                          placeholder="Digite seu texto..."
+                        />
+                        
+                        <label>Fonte:</label>
+                        <div className="font-controls">
+                          <select 
+                            value={templateElements[selectedElement].fontFamily || 'Arial'}
+                            onChange={(e) => updateSelectedElement('fontFamily', e.target.value)}
+                            className="font-select"
+                          >
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Impact">Impact</option>
+                          </select>
+                          <div className="range-compact">
+                            <input 
+                              type="range"
+                              min="8"
+                              max="80"
+                              value={templateElements[selectedElement].fontSize || 24}
+                              onChange={(e) => updateSelectedElement('fontSize', parseInt(e.target.value))}
+                            />
+                            <span className="range-value-compact">{templateElements[selectedElement].fontSize || 24}px</span>
+                          </div>
+                        </div>
+                        
+                        <label>Estilo:</label>
+                        <div className="style-controls-compact">
+                          <input 
+                            type="color"
+                            value={templateElements[selectedElement].color || '#ffffff'}
+                            onChange={(e) => updateSelectedElement('color', e.target.value)}
+                            className="color-picker-compact"
+                          />
+                          <div className="alignment-compact">
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].textAlign === 'left' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('textAlign', 'left')}
+                            >←</button>
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].textAlign === 'center' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('textAlign', 'center')}
+                            >↔</button>
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].textAlign === 'right' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('textAlign', 'right')}
+                            >→</button>
+                          </div>
+                          <div className="text-style-compact">
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].fontWeight === 'bold' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('fontWeight', 
+                                templateElements[selectedElement].fontWeight === 'bold' ? 'normal' : 'bold')}
+                            ><strong>B</strong></button>
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].fontStyle === 'italic' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('fontStyle', 
+                                templateElements[selectedElement].fontStyle === 'italic' ? 'normal' : 'italic')}
+                            ><em>I</em></button>
+                          </div>
+                        </div>
+
+                        <label>Posição:</label>
+                        <div className="position-compact">
+                          <input 
+                            type="number"
+                            value={Math.round(templateElements[selectedElement].x)}
+                            onChange={(e) => updateSelectedElement('x', parseInt(e.target.value))}
+                            placeholder="X"
+                          />
+                          <input 
+                            type="number"
+                            value={Math.round(templateElements[selectedElement].y)}
+                            onChange={(e) => updateSelectedElement('y', parseInt(e.target.value))}
+                            placeholder="Y"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {templateElements[selectedElement]?.type === 'image' && (
+                      <div className="property-group">
+                        <label>Imagem:</label>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="file-input-compact"
+                        />
+                        
+                        <label>Tamanho:</label>
+                        <div className="size-controls">
+                          <div className="range-compact">
+                            <span className="range-label">W:</span>
+                            <input 
+                              type="range"
+                              min="20"
+                              max="400"
+                              value={templateElements[selectedElement].width}
+                              onChange={(e) => updateSelectedElement('width', parseInt(e.target.value))}
+                            />
+                            <span className="range-value-compact">{templateElements[selectedElement].width}</span>
+                          </div>
+                          <div className="range-compact">
+                            <span className="range-label">H:</span>
+                            <input 
+                              type="range"
+                              min="20"
+                              max="400"
+                              value={templateElements[selectedElement].height}
+                              onChange={(e) => updateSelectedElement('height', parseInt(e.target.value))}
+                            />
+                            <span className="range-value-compact">{templateElements[selectedElement].height}</span>
+                          </div>
+                        </div>
+
+                        <label>Forma & Posição:</label>
+                        <div className="shape-position-compact">
+                          <div className="shape-buttons-compact">
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].shape === 'rectangle' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('shape', 'rectangle')}
+                            >⬜</button>
+                            <button 
+                              className={`btn-style ${templateElements[selectedElement].shape === 'circle' ? 'active' : ''}`}
+                              onClick={() => updateSelectedElement('shape', 'circle')}
+                            >⚫</button>
+                          </div>
+                          <div className="position-compact">
+                            <input 
+                              type="number"
+                              value={Math.round(templateElements[selectedElement].x)}
+                              onChange={(e) => updateSelectedElement('x', parseInt(e.target.value))}
+                              placeholder="X"
+                            />
+                            <input 
+                              type="number"
+                              value={Math.round(templateElements[selectedElement].y)}
+                              onChange={(e) => updateSelectedElement('y', parseInt(e.target.value))}
+                              placeholder="Y"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {templateElements[selectedElement]?.type === 'image' && (
-                  <div className="property-group">
-                    <label>Carregar Imagem:</label>
-                    <input 
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                    
-                    <label>Largura:</label>
-                    <input 
-                      type="number"
-                      value={templateElements[selectedElement].width}
-                      onChange={(e) => updateSelectedElement('width', parseInt(e.target.value))}
-                    />
-                    
-                    <label>Altura:</label>
-                    <input 
-                      type="number"
-                      value={templateElements[selectedElement].height}
-                      onChange={(e) => updateSelectedElement('height', parseInt(e.target.value))}
-                    />
+                {selectedElement === null && (
+                  <div className="no-selection-compact">
+                    <span>👆 Selecione um elemento para editar</span>
                   </div>
                 )}
-
-                <button className="btn btn-danger" onClick={deleteElement}>
-                  Excluir Elemento
-                </button>
               </div>
             )}
           </div>
@@ -499,10 +1158,44 @@ const App = () => {
             />
             {currentTemplate && (
               <div className="template-info">
-                <span>ID: {currentTemplate.id}</span>
-                <span>API: {backendUrl}/api/generate/{currentTemplate.id}</span>
+                <div className="template-id">
+                  <strong>ID:</strong> {currentTemplate.id}
+                </div>
+                <div className="template-endpoint">
+                  <strong>API:</strong> {backendUrl}/api/generate/{currentTemplate.id}
+                </div>
+                <div className="template-fields">
+                  <strong>Campos Personalizáveis:</strong>
+                  <div className="custom-fields">
+                    {getCustomizableFields(currentTemplate).length > 0 ? (
+                      getCustomizableFields(currentTemplate).map((field, index) => (
+                        <span key={index} className="field-tag">
+                          {field}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="no-fields">
+                        Nenhum campo personalizável detectado. 
+                        Use placeholders como {"{nome}"} no texto ou adicione imagens sem src.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {getCustomizableFields(currentTemplate).length > 0 && (
+                  <div className="api-example">
+                    <strong>Exemplo de Requisição:</strong>
+                    <pre className="code-block">
+{`POST ${backendUrl}/api/generate/${currentTemplate.id}
+Content-Type: application/json
+
+${JSON.stringify(getExampleRequestBody(currentTemplate), null, 2)}`}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
+            {!currentTemplate && console.log('currentTemplate é null/undefined')}
+            {currentTemplate && console.log('currentTemplate existe:', currentTemplate)}
           </div>
           
           <div className="canvas-container">
@@ -510,8 +1203,15 @@ const App = () => {
               ref={canvasRef}
               width={canvasWidth}
               height={canvasHeight}
+              onMouseDown={handleCanvasMouseDown}
               onClick={handleCanvasClick}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
               className="design-canvas"
+              style={{ 
+                cursor: isDragging ? 'grabbing' : (isResizing ? 'nw-resize' : (selectedElement !== null ? 'grab' : 'default'))
+              }}
             />
           </div>
           

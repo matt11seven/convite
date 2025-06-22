@@ -184,11 +184,24 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao fazer upload: {str(e)}")
 
-# Generate personalized invite
 @app.post("/api/generate/{template_id}")
 async def generate_invite(template_id: str, customizations: Dict[str, Any]):
     """Generate a personalized invite based on template and customizations"""
     try:
+        # Validate template_id format (basic security)
+        if not template_id or len(template_id) < 10:
+            raise HTTPException(status_code=400, detail="ID de template inválido")
+        
+        # Sanitize customizations to prevent injection
+        sanitized_customizations = {}
+        for key, value in customizations.items():
+            # Only allow alphanumeric keys and reasonable string values
+            if isinstance(key, str) and key.replace('_', '').replace('-', '').isalnum():
+                if isinstance(value, str) and len(value) <= 1000:  # Limit string length
+                    sanitized_customizations[key] = value
+                elif isinstance(value, (int, float)) and -1000000 <= value <= 1000000:
+                    sanitized_customizations[key] = value
+        
         # Get template
         template = templates_collection.find_one({"id": template_id}, {"_id": 0})
         if not template:
@@ -199,30 +212,106 @@ async def generate_invite(template_id: str, customizations: Dict[str, Any]):
         
         for element in template['elements']:
             new_element = element.copy()
+            element_index = template['elements'].index(element)
             
             # Apply customizations based on element type and content
             if element['type'] == 'text':
-                # Check if there's a customization for this text element
-                for key, value in customizations.items():
-                    if key in element.get('content', '').lower() or key == 'text':
+                # Check for placeholder patterns like {nome}, {evento}
+                content = element.get('content', '')
+                original_content = content
+                
+                # Replace placeholders
+                for key, value in sanitized_customizations.items():
+                    placeholder = f"{{{key}}}"
+                    if placeholder in content:
+                        content = content.replace(placeholder, str(value))
+                
+                # Check for common text patterns
+                content_lower = content.lower()
+                for key, value in sanitized_customizations.items():
+                    if key.lower() in ['nome', 'name'] and ('nome' in content_lower or 'name' in content_lower):
                         new_element['content'] = str(value)
                         break
+                    elif key.lower() in ['evento', 'event'] and ('evento' in content_lower or 'event' in content_lower):
+                        new_element['content'] = str(value)
+                        break
+                    elif key.lower() in ['data', 'date'] and ('data' in content_lower or 'date' in content_lower):
+                        new_element['content'] = str(value)
+                        break
+                    elif key.lower() in ['local', 'location'] and ('local' in content_lower or 'location' in content_lower):
+                        new_element['content'] = str(value)
+                        break
+                    elif key == f'texto_{element_index + 1}':
+                        new_element['content'] = str(value)
+                        break
+                
+                # Update content if it was modified via placeholders
+                if content != original_content:
+                    new_element['content'] = content
             
             elif element['type'] == 'image':
                 # Check if there's a customization for this image element
-                for key, value in customizations.items():
-                    if key == 'image' or key == 'photo':
-                        # If value is a base64 image, use it
-                        if isinstance(value, str) and value.startswith('data:image'):
-                            new_element['src'] = value
+                for key, value in sanitized_customizations.items():
+                    if key == f'imagem_{element_index + 1}' or key.lower() in ['imagem', 'image', 'photo', 'foto']:
+                        if isinstance(value, str):
+                            # If value is a base64 image, use it
+                            if value.startswith('data:image'):
+                                new_element['src'] = value
+                            # If value is a URL, convert to base64 for processing
+                            elif value.startswith('http'):
+                                try:
+                                    import requests
+                                    print(f"Downloading image from URL: {value}")
+                                    
+                                    # Add headers to mimic a browser request
+                                    headers = {
+                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                                        'Accept-Language': 'en-US,en;q=0.9',
+                                        'Accept-Encoding': 'gzip, deflate, br',
+                                        'Connection': 'keep-alive',
+                                    }
+                                    
+                                    response = requests.get(value, headers=headers, timeout=10, verify=False)
+                                    print(f"Response status: {response.status_code}")
+                                    print(f"Response headers: {response.headers}")
+                                    
+                                    if response.status_code == 200:
+                                        import base64
+                                        img_data = base64.b64encode(response.content).decode('utf-8')
+                                        # Detect content type from response headers or URL
+                                        content_type = response.headers.get('content-type', 'image/jpeg')
+                                        if not content_type.startswith('image/'):
+                                            # Fallback based on URL extension
+                                            if value.lower().endswith('.png'):
+                                                content_type = 'image/png'
+                                            elif value.lower().endswith('.gif'):
+                                                content_type = 'image/gif'
+                                            elif value.lower().endswith('.webp'):
+                                                content_type = 'image/webp'
+                                            else:
+                                                content_type = 'image/jpeg'
+                                        
+                                        data_url = f"data:{content_type};base64,{img_data}"
+                                        new_element['src'] = data_url
+                                        print(f"Successfully converted image to base64, size: {len(img_data)} chars")
+                                    else:
+                                        print(f"Failed to download image: HTTP {response.status_code}")
+                                except Exception as e:
+                                    print(f"Error downloading image from URL: {e}")
+                                    import traceback
+                                    traceback.print_exc()
                         break
             
             personalized_elements.append(new_element)
         
+        # Generate the image
+        image_url = await generate_invite_image(template, personalized_elements, template_id)
+        
         # Generate unique ID for this personalized invite
         invite_id = str(uuid.uuid4())
         
-        # Save the generated invite
+        # Save the generated invite (with all data for internal use)
         generated_invite = {
             "id": invite_id,
             "template_id": template_id,
@@ -230,23 +319,152 @@ async def generate_invite(template_id: str, customizations: Dict[str, Any]):
             "elements": personalized_elements,
             "background": template['background'],
             "dimensions": template['dimensions'],
-            "customizations": customizations,
+            "customizations": sanitized_customizations,
+            "image_url": image_url,
             "created_at": datetime.utcnow()
         }
         
         generated_collection.insert_one(generated_invite)
         
+        # Construct full HTTPS URL for the image
+        # In production, this should be your actual domain
+        request_url = "https://a4db54da-b296-42be-9eb9-b8108a30fb67.preview.emergentagent.com"
+        full_image_url = f"{request_url}{image_url}"
+        
+        # Return only essential, safe information
         return {
-            "id": invite_id,
+            "invite_id": invite_id,
             "template_id": template_id,
-            "elements": personalized_elements,
-            "background": template['background'],
-            "dimensions": template['dimensions'],
-            "message": "Convite personalizado gerado com sucesso"
+            "image_url": full_image_url,
+            "customizations": sanitized_customizations
         }
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar convite: {str(e)}")
+        # Log error internally but don't expose sensitive details
+        print(f"Error generating invite: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno do servidor")
+
+async def generate_invite_image(template, elements, template_id):
+    """Generate the actual image from template and elements"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import base64
+        import io
+        import os
+        
+        # Get template dimensions
+        width = template['dimensions']['width']
+        height = template['dimensions']['height']
+        
+        # Create image
+        img = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(img)
+        
+        # Draw background
+        background = template.get('background', '#ffffff')
+        if background.startswith('#'):
+            # Solid color background
+            img = Image.new('RGB', (width, height), color=background)
+            draw = ImageDraw.Draw(img)
+        elif background.startswith('data:image'):
+            # Image background
+            try:
+                bg_data = background.split(',')[1]
+                bg_image_data = base64.b64decode(bg_data)
+                bg_image = Image.open(io.BytesIO(bg_image_data))
+                bg_image = bg_image.resize((width, height))
+                img.paste(bg_image)
+                draw = ImageDraw.Draw(img)
+            except Exception as e:
+                print(f"Error loading background image: {e}")
+        
+        # Draw elements
+        for element in elements:
+            if element['type'] == 'text':
+                # Draw text
+                x = element.get('x', 0)
+                y = element.get('y', 0)
+                content = element.get('content', '')
+                font_size = element.get('fontSize', 24)
+                color = element.get('color', '#000000')
+                
+                # Try to load font, fallback to default
+                try:
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+                except:
+                    try:
+                        font = ImageFont.truetype("arial.ttf", font_size)
+                    except:
+                        font = ImageFont.load_default()
+                
+                # Handle multiline text
+                lines = content.split('\n')
+                for i, line in enumerate(lines):
+                    line_y = y + (i * font_size)
+                    draw.text((x, line_y), line, fill=color, font=font)
+            
+            elif element['type'] == 'image' and element.get('src'):
+                # Draw image
+                try:
+                    x = element.get('x', 0)
+                    y = element.get('y', 0)
+                    img_width = element.get('width', 100)
+                    img_height = element.get('height', 100)
+                    shape = element.get('shape', 'rectangle')
+                    
+                    # Decode base64 image
+                    img_data = element['src'].split(',')[1]
+                    img_bytes = base64.b64decode(img_data)
+                    element_img = Image.open(io.BytesIO(img_bytes))
+                    
+                    # Resize image
+                    element_img = element_img.resize((img_width, img_height))
+                    
+                    if shape == 'circle':
+                        # Create circular mask
+                        mask = Image.new('L', (img_width, img_height), 0)
+                        mask_draw = ImageDraw.Draw(mask)
+                        mask_draw.ellipse((0, 0, img_width, img_height), fill=255)
+                        
+                        # Apply mask
+                        element_img.putalpha(mask)
+                    
+                    # Paste image onto main image
+                    if element_img.mode == 'RGBA':
+                        img.paste(element_img, (x, y), element_img)
+                    else:
+                        img.paste(element_img, (x, y))
+                        
+                except Exception as e:
+                    print(f"Error processing image element: {e}")
+        
+        # Save image
+        os.makedirs('/app/generated_images', exist_ok=True)
+        image_filename = f"invite_{template_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}.png"
+        image_path = f"/app/generated_images/{image_filename}"
+        img.save(image_path, 'PNG', quality=95)
+        
+        # Return relative URL path (will be combined with full domain in the API response)
+        image_url = f"/api/images/{image_filename}"
+        return image_url
+        
+    except Exception as e:
+        print(f"Error generating image: {e}")
+        return None
+
+# Serve generated images
+@app.get("/api/images/{filename}")
+async def get_generated_image(filename: str):
+    """Serve generated images"""
+    try:
+        image_path = f"/app/generated_images/{filename}"
+        if os.path.exists(image_path):
+            from fastapi.responses import FileResponse
+            return FileResponse(image_path, media_type="image/png")
+        else:
+            raise HTTPException(status_code=404, detail="Imagem não encontrada")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao servir imagem: {str(e)}")
 
 # Get generated invite
 @app.get("/api/generated/{invite_id}")
