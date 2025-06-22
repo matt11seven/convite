@@ -1505,30 +1505,37 @@ const AppContent = () => {
         </div>
 
         <div className="canvas-area">
-          <div className="canvas-header">
-            <div className="template-name-section">
-              <input 
-                type="text"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                className="template-name-input"
-                placeholder="Nome do template"
-              />
-              <div className="template-actions">
+          <div className="canvas-header-new">
+            <div className="template-control-panel">
+              <div className="template-name-container">
+                <label className="template-label">Nome do Template:</label>
+                <input 
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="template-name-input-new"
+                  placeholder="Digite o nome do template..."
+                />
+              </div>
+              
+              <div className="template-buttons-container">
                 <button 
-                  className="btn btn-outline btn-small"
+                  className="btn-template btn-new"
                   onClick={createNewTemplate}
                   title="Criar novo template"
                 >
-                  ✨ Novo
+                  <span className="btn-icon">✨</span>
+                  <span className="btn-text">Novo Template</span>
                 </button>
+                
                 <button 
-                  className="btn btn-success btn-small"
+                  className="btn-template btn-save"
                   onClick={saveTemplate}
                   disabled={isLoading}
                   title="Salvar template atual"
                 >
-                  {isLoading ? '💾 Salvando...' : '💾 Salvar'}
+                  <span className="btn-icon">{isLoading ? '⏳' : '💾'}</span>
+                  <span className="btn-text">{isLoading ? 'Salvando...' : 'Salvar Template'}</span>
                 </button>
               </div>
             </div>
