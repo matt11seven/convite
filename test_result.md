@@ -107,63 +107,78 @@ user_problem_statement: "Testar o sistema de convites personalizados que acabei 
 backend:
   - task: "Health Check API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Endpoint implementado em server.py, linha 71. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Health Check API está funcionando corretamente. Retorna status 200 e confirma conexão com o MongoDB."
 
   - task: "Template CRUD Operations"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Endpoints implementados em server.py, linhas 81-160. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Todas as operações CRUD de templates estão funcionando corretamente. Criação, leitura, atualização e exclusão de templates foram testadas com sucesso."
 
   - task: "Image Upload"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Endpoint implementado em server.py, linha 163. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "Upload de imagem está funcionando corretamente. A API converte a imagem para base64 e retorna a URL de dados."
 
   - task: "Generate Personalized Invites"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Endpoints implementados em server.py, linhas 188-337. Precisa ser testado."
+      - working: false
+        agent: "testing"
+        comment: "Endpoint de geração de convites personalizados não está funcionando corretamente. A API retorna erro 500 ao tentar gerar um convite. Problema pode estar relacionado à dependência PIL (Pillow) que não está sendo carregada corretamente no ambiente do servidor."
 
   - task: "API Statistics"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Endpoint implementado em server.py, linha 340. Precisa ser testado."
+      - working: true
+        agent: "testing"
+        comment: "API de estatísticas está funcionando corretamente. Retorna informações sobre templates e convites gerados."
 
 frontend:
   - task: "Frontend Implementation"
