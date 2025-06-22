@@ -1,7 +1,286 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext, createContext } from 'react';
 import './App.css';
 
-const App = () => {
+// Auth Context
+const AuthContext = createContext();
+
+// Auth Provider Component
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('auth_token'));
+  const [isLoading, setIsLoading] = useState(false);
+
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+  useEffect(() => {
+    if (token) {
+      // Verify token on app start
+      fetch(`${backendUrl}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        } else {
+          throw new Error('Invalid token');
+        }
+      })
+      .then(userData => {
+        setUser(userData);
+      })
+      .catch(() => {
+        logout();
+      });
+    }
+  }, [token, backendUrl]);
+
+  const login = async (email, password) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.access_token);
+        setUser(data.user);
+        localStorage.setItem('auth_token', data.access_token);
+        return { success: true, user: data.user };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail };
+      }
+    } catch (error) {
+      return { success: false, error: 'Erro de conexão' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (email, password, fullName) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName
+        })
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        // Auto login after registration
+        const loginResult = await login(email, password);
+        return loginResult;
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail };
+      }
+    } catch (error) {
+      return { success: false, error: 'Erro de conexão' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('auth_token');
+  };
+
+  const getAuthHeaders = () => {
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
+  const value = {
+    user,
+    token,
+    isLoading,
+    login,
+    register,
+    logout,
+    getAuthHeaders,
+    isAuthenticated: !!user
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Hook to use auth context
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+// Login/Register Modal Component
+const AuthModal = ({ isOpen, onClose, mode = 'login' }) => {
+  const [currentMode, setCurrentMode] = useState(mode);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    fullName: ''
+  });
+  const [error, setError] = useState('');
+  const { login, register, isLoading } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (currentMode === 'login') {
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        onClose();
+        setFormData({ email: '', password: '', fullName: '' });
+      } else {
+        setError(result.error);
+      }
+    } else {
+      if (!formData.fullName.trim()) {
+        setError('Nome completo é obrigatório');
+        return;
+      }
+      const result = await register(formData.email, formData.password, formData.fullName);
+      if (result.success) {
+        onClose();
+        setFormData({ email: '', password: '', fullName: '' });
+      } else {
+        setError(result.error);
+      }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const switchMode = () => {
+    setCurrentMode(currentMode === 'login' ? 'register' : 'login');
+    setError('');
+    setFormData({ email: '', password: '', fullName: '' });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="auth-modal-overlay" onClick={onClose}>
+      <div className="auth-modal" onClick={e => e.stopPropagation()}>
+        <div className="auth-modal-header">
+          <h2>
+            {currentMode === 'login' ? '🔐 Entrar na Conta' : '✨ Criar Conta'}
+          </h2>
+          <button className="auth-modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {currentMode === 'register' && (
+            <div className="auth-field">
+              <label>Nome Completo:</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+                placeholder="Seu nome completo"
+              />
+            </div>
+          )}
+
+          <div className="auth-field">
+            <label>Email:</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              placeholder="seu@email.com"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label>Senha:</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              required
+              placeholder="Sua senha"
+              minLength="6"
+            />
+          </div>
+
+          {error && (
+            <div className="auth-error">
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            className="auth-submit-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? '⏳ Processando...' : 
+             currentMode === 'login' ? '🚀 Entrar' : '✨ Criar Conta'}
+          </button>
+        </form>
+
+        <div className="auth-switch">
+          {currentMode === 'login' ? (
+            <p>
+              Não tem conta? 
+              <button type="button" onClick={switchMode} className="auth-link">
+                Criar conta
+              </button>
+            </p>
+          ) : (
+            <p>
+              Já tem conta? 
+              <button type="button" onClick={switchMode} className="auth-link">
+                Fazer login
+              </button>
+            </p>
+          )}
+        </div>
+
+        <div className="auth-demo-info">
+          <h4>🎯 Conta Demo Admin:</h4>
+          <p><strong>Email:</strong> admin@convites.com</p>
+          <p><strong>Senha:</strong> admin123</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component
+const AppContent = () => {
   const canvasRef = useRef(null);
   const [templates, setTemplates] = useState([]);
   const [currentTemplate, setCurrentTemplate] = useState(null);
