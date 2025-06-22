@@ -7,7 +7,6 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 import os
 import uuid
-import magic
 import hashlib
 import logging
 from typing import Optional, Dict, Any, List
