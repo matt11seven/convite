@@ -868,35 +868,26 @@ const App = () => {
               <div className="properties-panel">
                 <h3>⚙️ Propriedades</h3>
                 
-                {/* Elements List - Compact Dropdown */}
-                <div className="elements-list-container">
-                  <div 
-                    className="elements-list-header"
-                    onClick={() => setShowElementsList(!showElementsList)}
-                  >
-                    <span className="elements-count">
-                      📋 {templateElements.length} elemento{templateElements.length !== 1 ? 's' : ''}
+                {/* Elements List - New Clean Design */}
+                <div className="elements-manager">
+                  <div className="elements-header">
+                    <span className="elements-title">
+                      📋 Elementos ({templateElements.length})
                     </span>
-                    <div className="header-actions">
-                      {templateElements.length > 0 && (
-                        <button 
-                          className="btn-clear-mini"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Remover todos os elementos?')) {
-                              setTemplateElements([]);
-                              setSelectedElement(null);
-                            }
-                          }}
-                          title="Limpar todos"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                      <span className={`dropdown-arrow ${showElementsList ? 'expanded' : ''}`}>
-                        ▼
-                      </span>
-                    </div>
+                    {templateElements.length > 0 && (
+                      <button 
+                        className="btn-clear-all"
+                        onClick={() => {
+                          if (window.confirm('Remover todos os elementos?')) {
+                            setTemplateElements([]);
+                            setSelectedElement(null);
+                          }
+                        }}
+                        title="Limpar todos"
+                      >
+                        🗑️ Limpar
+                      </button>
+                    )}
                   </div>
                   
                   {showElementsList && (
