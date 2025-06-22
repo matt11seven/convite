@@ -1508,13 +1508,13 @@ const AppContent = () => {
           <div className="canvas-header-new">
             <div className="template-control-panel">
               <div className="template-name-container">
-                <label className="template-label">Nome do Template:</label>
+                <label className="template-label">📝 Nome do Template</label>
                 <input 
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   className="template-name-input-new"
-                  placeholder="Digite o nome do template..."
+                  placeholder="Ex: Convite de Casamento Elegante"
                 />
               </div>
               
@@ -1522,20 +1522,20 @@ const AppContent = () => {
                 <button 
                   className="btn-template btn-new"
                   onClick={createNewTemplate}
-                  title="Criar novo template"
+                  title="Criar um novo template em branco"
                 >
                   <span className="btn-icon">✨</span>
-                  <span className="btn-text">Novo Template</span>
+                  <span className="btn-text">Novo</span>
                 </button>
                 
                 <button 
                   className="btn-template btn-save"
                   onClick={saveTemplate}
                   disabled={isLoading}
-                  title="Salvar template atual"
+                  title={isLoading ? 'Salvando template...' : 'Salvar template atual'}
                 >
                   <span className="btn-icon">{isLoading ? '⏳' : '💾'}</span>
-                  <span className="btn-text">{isLoading ? 'Salvando...' : 'Salvar Template'}</span>
+                  <span className="btn-text">{isLoading ? 'Salvando' : 'Salvar'}</span>
                 </button>
               </div>
             </div>
