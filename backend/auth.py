@@ -258,8 +258,14 @@ def cleanup_expired_sessions():
 # Initialize admin user
 def init_admin_user():
     """Initialize admin user if not exists."""
-    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@convites.com')
-    admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    admin_email = os.environ.get('ADMIN_EMAIL')
+    admin_password = os.environ.get('ADMIN_PASSWORD')
+    
+    # Verificar se as credenciais de admin estão configuradas
+    if not admin_email or not admin_password:
+        print("⚠️  WARNING: ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env file")
+        print("⚠️  Admin user will not be created automatically")
+        return
     
     # Check if admin exists
     admin_user = users_collection.find_one({"email": admin_email})
@@ -270,12 +276,15 @@ def init_admin_user():
             full_name="System Administrator"
         )
         
-        user_doc = create_user(admin_data)
-        # Update role to admin
-        users_collection.update_one(
-            {"id": user_doc["id"]},
-            {"$set": {"role": "admin"}}
-        )
-        print(f"✅ Admin user created: {admin_email}")
+        try:
+            user_doc = create_user(admin_data)
+            # Update role to admin
+            users_collection.update_one(
+                {"id": user_doc["id"]},
+                {"$set": {"role": "admin"}}
+            )
+            print(f"✅ Admin user created successfully: {admin_email}")
+        except Exception as e:
+            print(f"❌ Failed to create admin user: {e}")
     else:
         print(f"✅ Admin user already exists: {admin_email}")
